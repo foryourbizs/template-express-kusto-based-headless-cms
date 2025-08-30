@@ -5,7 +5,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("RDS_USER_URL")
+  url      = env("RDS_URL")
 }
 
 // ########################################

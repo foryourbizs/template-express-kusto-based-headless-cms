@@ -45,7 +45,7 @@ router.PUT_ARRAY_FILE(storage, 'files', async (req, res, injected, repo, db) => 
             });
         }
 
-        if (uploadedFiles.length === 1) {
+        if (uploadedFiles.length !== 1) {
             res.status(400);
             return res.json({ 
                 success: false, 

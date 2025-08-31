@@ -28,6 +28,11 @@ const storage = diskStorage({
     }
 });
 
+
+
+
+
+router.WITH('authJwtGuardRoleCheck', {requiredRoles: ['admin']})
 router.PUT_ARRAY_FILE(storage, 'files', async (req, res, injected, repo, db) => {
     try {
         const uploadedFiles = req.files as Express.Multer.File[];

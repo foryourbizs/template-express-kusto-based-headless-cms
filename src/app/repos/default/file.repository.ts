@@ -310,4 +310,132 @@ export default class FilesRepository extends BaseRepository<'default'> {
             }
         });
     }
+
+    /**
+     * Upsert a file record (create if not exists, update if exists)
+     * @param whereCondition Condition to find existing file (e.g., { uuid: '...' } or { filePath: '...', storageUuid: '...' })
+     * @param data File data for create/update
+     * @returns Upserted file
+     */
+    public async upsertFile(
+        whereCondition: { uuid: string } | { filePath: string; storageUuid: string },
+        data: {
+            filename: string;
+            originalName: string;
+            mimeType: string;
+            fileSize: bigint;
+            extension?: string;
+            storageUuid: string;
+            filePath: string;
+            exists?: boolean;
+            isPublic?: boolean;
+            isArchived?: boolean;
+            md5Hash?: string;
+            sha256Hash?: string;
+            uploadedBy?: string;
+            uploadSource?: string;
+            metadata?: any;
+            accessPermissionUuid?: string;
+            expiresAt?: Date;
+        }
+    ) {
+        // First, try to find existing file
+        const existingFile = await this.client.files.findFirst({
+            where: whereCondition
+        });
+
+        if (existingFile) {
+            // Update existing file
+            return this.client.files.update({
+                where: { uuid: existingFile.uuid },
+                data: {
+                    filename: data.filename,
+                    originalName: data.originalName,
+                    mimeType: data.mimeType,
+                    fileSize: data.fileSize,
+                    extension: data.extension,
+                    storageUuid: data.storageUuid,
+                    filePath: data.filePath,
+                    exists: data.exists ?? true,
+                    isPublic: data.isPublic ?? false,
+                    isArchived: data.isArchived ?? false,
+                    md5Hash: data.md5Hash,
+                    sha256Hash: data.sha256Hash,
+                    uploadedBy: data.uploadedBy,
+                    uploadSource: data.uploadSource,
+                    metadata: data.metadata,
+                    accessPermissionUuid: data.accessPermissionUuid,
+                    expiresAt: data.expiresAt,
+                },
+                include: {
+                    storage: true,
+                    uploader: true,
+                }
+            });
+        } else {
+            // Create new file
+            return this.client.files.create({
+                data: {
+                    filename: data.filename,
+                    originalName: data.originalName,
+                    mimeType: data.mimeType,
+                    fileSize: data.fileSize,
+                    extension: data.extension,
+                    storageUuid: data.storageUuid,
+                    filePath: data.filePath,
+                    exists: data.exists ?? false,
+                    isPublic: data.isPublic ?? false,
+                    isArchived: false,
+                    md5Hash: data.md5Hash,
+                    sha256Hash: data.sha256Hash,
+                    uploadedBy: data.uploadedBy,
+                    uploadSource: data.uploadSource,
+                    metadata: data.metadata,
+                    accessPermissionUuid: data.accessPermissionUuid,
+                    expiresAt: data.expiresAt,
+                },
+                include: {
+                    storage: true,
+                    uploader: true,
+                }
+            });
+        }
+    }
+
+    /**
+     * Upsert file by file path and storage (commonly used for file uploads)
+     * @param filePath File path in storage
+     * @param storageUuid Storage UUID
+     * @param data File data for create/update
+     * @returns Upserted file
+     */
+    public async upsertFileByPath(
+        filePath: string,
+        storageUuid: string,
+        data: {
+            filename: string;
+            originalName: string;
+            mimeType: string;
+            fileSize: bigint;
+            extension?: string;
+            exists?: boolean;
+            isPublic?: boolean;
+            md5Hash?: string;
+            sha256Hash?: string;
+            uploadedBy?: string;
+            uploadSource?: string;
+            metadata?: any;
+            accessPermissionUuid?: string;
+            expiresAt?: Date;
+        }
+    ) {
+        return this.upsertFile(
+            { filePath, storageUuid },
+            {
+                ...data,
+                filePath,
+                storageUuid,
+            }
+        );
+    }
 }

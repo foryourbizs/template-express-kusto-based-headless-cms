@@ -18,7 +18,10 @@ router.GET_VALIDATED({
     }
 }, async (req, res, injected, repo, db) => {
     try {
+        
         const { key, contentType, expiresIn = 3600 } = req.validatedData.query;
+
+        const fileRepo = repo.getRepository('defaultFile');
 
         // presigned URL 생성
         const presignedUrl = await injected.cloudflareR2.generateUploadPresignedUrl(
@@ -33,10 +36,18 @@ router.GET_VALIDATED({
             });
         }
 
-        // repo.getRepository('')
-
         // 만료 시간 계산
         const expiresAt = new Date(Date.now() + (expiresIn as number) * 1000).toISOString();
+
+        // 미리 파일 등록 (존재 여부는 중요하지 않음)
+        await fileRepo.createFile({
+            filename: '',
+            originalName: '',
+            mimeType: '',
+            fileSize: 0n,
+            storageUuid: '',
+            filePath: '',
+        })
 
         res.status(201).json({
             url: presignedUrl,

@@ -24,6 +24,79 @@ export default class ObjectStoragesRepository extends BaseRepository<'default'> 
     }
 
     /**
+     * Get a single object storage by UUID
+     * @param uuid Object storage UUID
+     * @returns Object storage or null if not found
+     */
+    public async getObjectStorageByUuid(uuid: string) {
+        return this.client.objectStorages.findUnique({
+            where: { uuid }
+        });
+    }
+
+    /**
+     * Get a single object storage by name (unique field)
+     * @param name Object storage name
+     * @param includeDeleted Include soft-deleted storages
+     * @returns Object storage or null if not found
+     */
+    public async getObjectStorageByName(name: string, includeDeleted = false) {
+        return this.client.objectStorages.findUnique({
+            where: { 
+                name,
+                ...(includeDeleted ? {} : { deletedAt: null })
+            }
+        });
+    }
+
+    /**
+     * Get active object storage by name (excludes soft-deleted and inactive)
+     * @param name Object storage name
+     * @returns Active object storage or null if not found
+     */
+    public async getActiveObjectStorageByName(name: string) {
+        return this.client.objectStorages.findFirst({
+            where: {
+                name,
+                deletedAt: null,
+                isActive: true
+            }
+        });
+    }
+
+    /**
+     * Get default object storage
+     * @returns Default object storage or null if not found
+     */
+    public async getDefaultObjectStorage() {
+        return this.client.objectStorages.findFirst({
+            where: {
+                isDefault: true,
+                deletedAt: null,
+                isActive: true
+            }
+        });
+    }
+
+    /**
+     * Get object storages by provider
+     * @param provider Provider name (e.g., 'S3', 'R2', 'GCS')
+     * @param includeDeleted Include soft-deleted storages
+     * @returns List of object storages for the provider
+     */
+    public async getObjectStoragesByProvider(provider: string, includeDeleted = false) {
+        return this.client.objectStorages.findMany({
+            where: {
+                provider,
+                ...(includeDeleted ? {} : { deletedAt: null })
+            },
+            orderBy: {
+                isDefault: 'desc' // Default storages first
+            }
+        });
+    }
+
+    /**
      * Create a new object storage configuration
      * @param data Object storage data to create
      * @returns Created object storage with generated UUID
@@ -118,5 +191,6 @@ export default class ObjectStoragesRepository extends BaseRepository<'default'> 
 
 
     
+
 
 }

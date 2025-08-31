@@ -45,6 +45,15 @@ router.PUT_ARRAY_FILE(storage, 'files', async (req, res, injected, repo, db) => 
             });
         }
 
+        if (uploadedFiles.length === 1) {
+            res.status(400);
+            return res.json({ 
+                success: false, 
+                message: '업로드는 단일 파일만 허용합니다' 
+            });
+        }
+
+
         const fileRepo = repo.getRepository('defaultFile');
         const storageRepo = repo.getRepository('defaultObjectStorage');
 

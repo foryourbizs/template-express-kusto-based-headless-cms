@@ -543,6 +543,26 @@ export class ExpressRouter {
         const upload = multer({ storage: multerStorageEngine, limits: { fileSize: fileSize } });
         const accpetFileType = upload.any();
         this.router.post('/', accpetFileType, this.wrapHandler(handler));
+
+        // 문서화 등록을 지연시키거나 setBasePath 호출 후 올바른 경로로 등록하도록 함
+        if (this.basePath) {
+            // basePath가 이미 설정된 경우 즉시 등록
+            DocumentationGenerator.registerRoute({
+                method: 'POST',
+                path: this.getFullPath('/'),
+                summary: `Any file upload`,
+                parameters: {},
+                responses: { 200: { data: { type: 'object' as const, required: false } } }
+            });
+        } else {
+            // basePath가 아직 설정되지 않은 경우 지연 등록
+            this.pendingDocumentation.push({
+                method: 'POST',
+                path: '/',
+                responseConfig: { 200: { data: { type: 'object', required: false } } }
+            });
+        }
+
         return this;
     }
 
@@ -598,6 +618,26 @@ export class ExpressRouter {
         const upload = multer({ storage: multerStorageEngine, limits: { fileSize: fileSize }, });
         const accpetFileType = upload.single(keyName);
         this.router.put('/', accpetFileType, this.wrapHandler(handler));
+
+        // 문서화 등록을 지연시키거나 setBasePath 호출 후 올바른 경로로 등록하도록 함
+        if (this.basePath) {
+            // basePath가 이미 설정된 경우 즉시 등록
+            DocumentationGenerator.registerRoute({
+                method: 'PUT',
+                path: this.getFullPath('/'),
+                summary: `File upload: ${keyName}`,
+                parameters: {},
+                responses: { 200: { data: { type: 'object' as const, required: false } } }
+            });
+        } else {
+            // basePath가 아직 설정되지 않은 경우 지연 등록
+            this.pendingDocumentation.push({
+                method: 'PUT',
+                path: '/',
+                responseConfig: { 200: { data: { type: 'object', required: false } } }
+            });
+        }
+
         return this;
     }
 
@@ -620,6 +660,26 @@ export class ExpressRouter {
         const upload = multer({ storage: multerStorageEngine, limits: { fileSize: fileSize } });
         const accpetFileType = upload.array(keyName, maxFileCount);
         this.router.put('/', accpetFileType, this.wrapHandler(handler));
+
+        // 문서화 등록을 지연시키거나 setBasePath 호출 후 올바른 경로로 등록하도록 함
+        if (this.basePath) {
+            // basePath가 이미 설정된 경우 즉시 등록
+            DocumentationGenerator.registerRoute({
+                method: 'PUT',
+                path: this.getFullPath('/'),
+                summary: `Multiple file upload: ${keyName}${maxFileCount ? ` (max: ${maxFileCount})` : ''}`,
+                parameters: {},
+                responses: { 200: { data: { type: 'object' as const, required: false } } }
+            });
+        } else {
+            // basePath가 아직 설정되지 않은 경우 지연 등록
+            this.pendingDocumentation.push({
+                method: 'PUT',
+                path: '/',
+                responseConfig: { 200: { data: { type: 'object', required: false } } }
+            });
+        }
+
         return this;
     }
 
@@ -643,6 +703,26 @@ export class ExpressRouter {
         const upload = multer({ storage: multerStorageEngine, limits: { fileSize: fileSize } });
         const accpetFileType = upload.fields(fields);
         this.router.put('/', accpetFileType, this.wrapHandler(handler));
+
+        // 문서화 등록을 지연시키거나 setBasePath 호출 후 올바른 경로로 등록하도록 함
+        if (this.basePath) {
+            // basePath가 이미 설정된 경우 즉시 등록
+            DocumentationGenerator.registerRoute({
+                method: 'PUT',
+                path: this.getFullPath('/'),
+                summary: `Multiple fields file upload`,
+                parameters: {},
+                responses: { 200: { data: { type: 'object' as const, required: false } } }
+            });
+        } else {
+            // basePath가 아직 설정되지 않은 경우 지연 등록
+            this.pendingDocumentation.push({
+                method: 'PUT',
+                path: '/',
+                responseConfig: { 200: { data: { type: 'object', required: false } } }
+            });
+        }
+
         return this;
     }
 
@@ -668,6 +748,26 @@ export class ExpressRouter {
         const upload = multer({ storage: multerStorageEngine, limits: { fileSize: fileSize } });
         const accpetFileType = upload.any();
         this.router.put('/', accpetFileType, this.wrapHandler(handler));
+
+        // 문서화 등록을 지연시키거나 setBasePath 호출 후 올바른 경로로 등록하도록 함
+        if (this.basePath) {
+            // basePath가 이미 설정된 경우 즉시 등록
+            DocumentationGenerator.registerRoute({
+                method: 'PUT',
+                path: this.getFullPath('/'),
+                summary: `Any file upload`,
+                parameters: {},
+                responses: { 200: { data: { type: 'object' as const, required: false } } }
+            });
+        } else {
+            // basePath가 아직 설정되지 않은 경우 지연 등록
+            this.pendingDocumentation.push({
+                method: 'PUT',
+                path: '/',
+                responseConfig: { 200: { data: { type: 'object', required: false } } }
+            });
+        }
+
         return this;
     }
 

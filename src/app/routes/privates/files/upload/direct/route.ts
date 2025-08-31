@@ -38,10 +38,42 @@ router.PUT_ARRAY_FILE(storage, 'files', async (req, res, injected, repo, db) => 
         const uploadedFiles = req.files as Express.Multer.File[];
         
         if (!uploadedFiles || uploadedFiles.length === 0) {
-            return res.status(400).json({ 
+            res.status(400);
+            return { 
                 success: false, 
                 message: '업로드된 파일이 없습니다.' 
-            });
+            };
+        }
+
+        const fileRepo = repo.getRepository('defaultFile');
+        const storageRepo = repo.getRepository('defaultObjectStorage');
+
+        // R2_TAG로 정의된 스토리지 설정 조회
+        const r2StorageName = injected.constantService.R2_TAG;
+        if (!r2StorageName) {
+            res.status(400);
+            return {
+                success: false,
+                message: 'R2 스토리지 태그가 설정되지 않았습니다.'
+            };
+        }
+
+        const r2Storage = await storageRepo.getObjectStorageByName(r2StorageName);
+        if (!r2Storage) {
+            res.status(400);
+            return {
+                success: false,
+                message: `R2 스토리지 설정을 찾을 수 없습니다. (${r2StorageName})`
+            };
+        }
+
+        // 스토리지가 활성화되어 있는지 확인
+        if (!r2Storage.isActive || r2Storage.deletedAt) {
+            res.status(400);
+            return {
+                success: false,
+                message: 'R2 스토리지가 비활성화되어 있습니다.'
+            };
         }
 
         const results = [];
@@ -62,7 +94,27 @@ router.PUT_ARRAY_FILE(storage, 'files', async (req, res, injected, repo, db) => 
                 );
 
                 if (uploadSuccess) {
-                    // 4. R2 업로드 성공 시 로컬 파일 삭제
+                    // 4. 파일 확장자 추출
+                    const extension = path.extname(file.originalname).toLowerCase().replace('.', '');
+
+                    // 5. 데이터베이스에 파일 정보 저장 (upsert 사용)
+                    const fileRecord = await fileRepo.upsertFileByPath(
+                        r2Key,
+                        r2Storage.uuid,
+                        {
+                            filename: file.filename,
+                            originalName: file.originalname,
+                            mimeType: file.mimetype,
+                            fileSize: BigInt(file.size),
+                            extension: extension || undefined,
+                            exists: true,
+                            isPublic: false,
+                            uploadedBy: undefined, // TODO: 인증 시스템에서 사용자 ID 가져오기
+                            uploadSource: 'direct_upload',
+                        }
+                    );
+
+                    // 6. R2 업로드 성공 시 로컬 파일 삭제
                     await unlink(file.path);
                     
                     results.push({
@@ -71,7 +123,8 @@ router.PUT_ARRAY_FILE(storage, 'files', async (req, res, injected, repo, db) => 
                         filename: file.filename,
                         r2Key: r2Key,
                         size: file.size,
-                        mimetype: file.mimetype
+                        mimetype: file.mimetype,
+                        fileUuid: fileRecord.uuid
                     });
                 } else {
                     // R2 업로드 실패 시에도 로컬 파일 삭제
@@ -101,19 +154,21 @@ router.PUT_ARRAY_FILE(storage, 'files', async (req, res, injected, repo, db) => 
             }
         }
 
-        res.json({
+        res.status(200);
+        return {
             success: true,
             message: '파일 처리 완료',
             results: results
-        });
+        };
 
     } catch (error) {
         console.error('파일 업로드 처리 중 오류:', error);
-        res.status(500).json({
+        res.status(500);
+        return {
             success: false,
             message: '파일 업로드 처리 중 오류가 발생했습니다.',
             error: error instanceof Error ? error.message : '알 수 없는 오류'
-        });
+        };
     }
 });
 

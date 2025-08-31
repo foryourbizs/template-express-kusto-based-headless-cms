@@ -33,6 +33,8 @@ router.GET_VALIDATED({
             });
         }
 
+        // repo.getRepository('')
+
         // 만료 시간 계산
         const expiresAt = new Date(Date.now() + (expiresIn as number) * 1000).toISOString();
 

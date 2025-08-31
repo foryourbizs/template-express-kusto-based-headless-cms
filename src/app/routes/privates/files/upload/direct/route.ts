@@ -39,10 +39,10 @@ router.PUT_ARRAY_FILE(storage, 'files', async (req, res, injected, repo, db) => 
         
         if (!uploadedFiles || uploadedFiles.length === 0) {
             res.status(400);
-            return { 
+            return res.json({ 
                 success: false, 
                 message: '업로드된 파일이 없습니다.' 
-            };
+            });
         }
 
         const fileRepo = repo.getRepository('defaultFile');
@@ -52,28 +52,28 @@ router.PUT_ARRAY_FILE(storage, 'files', async (req, res, injected, repo, db) => 
         const r2StorageName = injected.constantService.R2_TAG;
         if (!r2StorageName) {
             res.status(400);
-            return {
+            return res.json({
                 success: false,
                 message: 'R2 스토리지 태그가 설정되지 않았습니다.'
-            };
+            });
         }
 
         const r2Storage = await storageRepo.getObjectStorageByName(r2StorageName);
         if (!r2Storage) {
             res.status(400);
-            return {
+            return res.json({
                 success: false,
                 message: `R2 스토리지 설정을 찾을 수 없습니다. (${r2StorageName})`
-            };
+            });
         }
 
         // 스토리지가 활성화되어 있는지 확인
         if (!r2Storage.isActive || r2Storage.deletedAt) {
             res.status(400);
-            return {
+            return res.json({
                 success: false,
                 message: 'R2 스토리지가 비활성화되어 있습니다.'
-            };
+            });
         }
 
         const results = [];
@@ -155,20 +155,20 @@ router.PUT_ARRAY_FILE(storage, 'files', async (req, res, injected, repo, db) => 
         }
 
         res.status(200);
-        return {
+        return res.json({
             success: true,
             message: '파일 처리 완료',
             results: results
-        };
+        });
 
     } catch (error) {
         console.error('파일 업로드 처리 중 오류:', error);
         res.status(500);
-        return {
+        return res.json({
             success: false,
             message: '파일 업로드 처리 중 오류가 발생했습니다.',
             error: error instanceof Error ? error.message : '알 수 없는 오류'
-        };
+        });
     }
 });
 

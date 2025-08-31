@@ -1864,20 +1864,20 @@ export class ExpressRouter {
 
     
     /**
-     * CRUD ?�동 ?�성 메서??
+     * CRUD 자동 생성 메서드
      * 완전한 REST API CRUD 엔드포인트를 자동으로 생성합니다
      * 
-     * ?�성?�는 ?�우??
-     * - GET / (index) - 리스??조회 with ?�터�? ?�렬, ?�이지?�이??
-     * - GET /:identifier (show) - ?�일 ??�� 조회
-     * - POST / (create) - ????�� ?�성
-     * - PUT /:identifier (update) - ??�� ?�체 ?�정
-     * - PATCH /:identifier (update) - ??�� 부�??�정  
-     * - DELETE /:identifier (destroy) - ??�� ??��
+     * 생성되는 라우트:
+     * - GET / (index) - 리스트 조회 with 필터링, 정렬, 페이지네이션
+     * - GET /:identifier (show) - 단일 데이터 조회
+     * - POST / (create) - 새로운 데이터 생성
+     * - PUT /:identifier (update) - 데이터 전체 수정
+     * - PATCH /:identifier (update) - 데이터 부분 수정  
+     * - DELETE /:identifier (destroy) - 데이터 삭제
      * 
-     * @param databaseName ?�용???�이?�베?�스 ?�름
-     * @param modelName ?�??모델 ?�름 (?�???�전?�을 ?�해 ?�네�??�용)
-     * @param options CRUD ?�션 ?�정
+     * @param databaseName 사용할 데이터베이스 이름
+     * @param modelName 대상 모델 이름 (복수형 변환을 위해 단수형 사용)
+     * @param options CRUD 옵션 설정
      */
     public CRUD<T extends DatabaseNamesUnion>(
         databaseName: T, 

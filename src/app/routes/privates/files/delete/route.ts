@@ -12,7 +12,7 @@ const router = new ExpressRouter();
 router.WITH('authJwtGuardRoleCheck', { requiredRoles: ['admin'] })
 router.DELETE_VALIDATED(
     {
-        params: {
+        query: {
             fileUuid: { type: 'string', required: true }
         }
     },

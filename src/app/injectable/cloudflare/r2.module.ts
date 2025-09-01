@@ -6,7 +6,7 @@ import { log } from '@ext/winston'
 
 const config = {
     ACCESS_ID: process.env.CLOUDFLARE_ACCESS_ID || '',
-    SECRET_ACCESS_KEY: process.env.CLOUDFLARE_SECRET_ACCESS || '',
+    SECRET_ACCESS_KEY: process.env.CLOUDFLARE_SECRET_ACCESS_KEY || '',
     R2_API: process.env.CLOUDFLARE_R2_API || '',
     R2_BUCKET: process.env.CLOUDFLARE_R2_BUCKET || ''
 };
@@ -15,7 +15,7 @@ const config = {
 const validateConfig = () => {
     const missing = [];
     if (!config.ACCESS_ID) missing.push('CLOUDFLARE_ACCESS_ID');
-    if (!config.SECRET_ACCESS_KEY) missing.push('CLOUDFLARE_SECRET_ACCESS');
+    if (!config.SECRET_ACCESS_KEY) missing.push('SECRET_ACCESS_KEY');
     if (!config.R2_API) missing.push('CLOUDFLARE_R2_API');
     if (!config.R2_BUCKET) missing.push('CLOUDFLARE_R2_BUCKET');
     

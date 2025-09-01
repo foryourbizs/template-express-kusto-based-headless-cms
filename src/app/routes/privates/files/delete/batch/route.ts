@@ -10,7 +10,39 @@ const router = new ExpressRouter();
  * @returns 삭제 결과
  */
 router.WITH('authJwtGuardRoleCheck', { requiredRoles: ['admin'] })
-router.DELETE(async (req, res, injected, repo, db) => {
+router.DELETE_VALIDATED(
+    {
+        body: {
+            fileUuids: { type: 'array', required: true }
+        }
+    },
+    {
+        200: {
+            success: { type: 'boolean', required: true },
+            message: { type: 'string', required: true },
+            data: {
+                type: 'object',
+                required: true,
+                properties: {
+                    totalRequested: { type: 'number', required: true },
+                    successCount: { type: 'number', required: true },
+                    failureCount: { type: 'number', required: true },
+                    r2DeleteResults: { type: 'object', required: true },
+                    results: { type: 'object', required: true }
+                }
+            }
+        },
+        400: {
+            success: { type: 'boolean', required: true },
+            message: { type: 'string', required: true }
+        },
+        500: {
+            success: { type: 'boolean', required: true },
+            message: { type: 'string', required: true },
+            error: { type: 'string', required: false }
+        }
+    },
+    async (req, res, injected, repo, db) => {
     try {
         const { fileUuids } = req.body;
 

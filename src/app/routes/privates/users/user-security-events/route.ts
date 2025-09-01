@@ -4,7 +4,8 @@ const router = new ExpressRouter();
 
 router
 .CRUD('default', 'userSecurityEvent', {
-    only: ['index', 'show']
+    only: ['index', 'show'],
+    primaryKey: 'uuid'
 })
 
 export default router.build();

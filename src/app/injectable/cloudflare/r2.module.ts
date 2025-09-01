@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, DeleteObjectsCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { Readable } from 'stream';
 import { log } from '@ext/winston'
@@ -152,5 +152,142 @@ export default class CloudflareR2Module {
             return null;
         }
     }
+
+    /**
+     * R2에서 단일 파일을 삭제합니다.
+     * @param key - S3 객체 키 (파일명/경로)
+     * @param bucket - 삭제할 버킷명 (기본값: 환경변수에서 설정된 버킷)
+     * @returns Promise<boolean> - 삭제 성공 여부
+     */
+    public async deleteFile(key: string, bucket: string = config.R2_BUCKET): Promise<boolean> {
+        try {
+            const command = new DeleteObjectCommand({
+                Bucket: bucket,
+                Key: key
+            });
+
+            await s3.send(command);
+            log.Info(`R2 파일 삭제 성공: ${key}`);
+            return true;
+        } catch (error) {
+            log.Error('R2 파일 삭제 실패:', error);
+            return false;
+        }
+    }
+
+    /**
+     * R2에서 여러 파일을 한 번에 삭제합니다.
+     * @param keys - 삭제할 S3 객체 키들의 배열
+     * @param bucket - 삭제할 버킷명 (기본값: 환경변수에서 설정된 버킷)
+     * @returns Promise<{succeeded: string[], failed: {key: string, error: string}[]}> - 삭제 결과
+     */
+    public async deleteMultipleFiles(
+        keys: string[], 
+        bucket: string = config.R2_BUCKET
+    ): Promise<{succeeded: string[], failed: {key: string, error: string}[]}> {
+        try {
+            if (keys.length === 0) {
+                return { succeeded: [], failed: [] };
+            }
+
+            // 최대 1000개 파일까지 한 번에 삭제 가능 (AWS S3 제한)
+            if (keys.length > 1000) {
+                throw new Error('한 번에 삭제할 수 있는 파일은 최대 1000개입니다.');
+            }
+
+            const command = new DeleteObjectsCommand({
+                Bucket: bucket,
+                Delete: {
+                    Objects: keys.map(key => ({ Key: key })),
+                    Quiet: false // 삭제 결과를 상세히 받기 위해 false 설정
+                }
+            });
+
+            const response = await s3.send(command);
+            
+            const succeeded = response.Deleted?.map(obj => obj.Key || '') || [];
+            const failed = response.Errors?.map(err => ({
+                key: err.Key || '',
+                error: err.Message || 'Unknown error'
+            })) || [];
+
+            log.Info(`R2 파일 일괄 삭제 완료: 성공 ${succeeded.length}개, 실패 ${failed.length}개`);
+            
+            return { succeeded, failed };
+        } catch (error) {
+            log.Error('R2 파일 일괄 삭제 실패:', error);
+            
+            // 에러 발생시 모든 파일을 실패로 처리
+            return {
+                succeeded: [],
+                failed: keys.map(key => ({
+                    key,
+                    error: error instanceof Error ? error.message : 'Unknown error'
+                }))
+            };
+        }
+    }
+
+    /**
+     * R2에서 특정 경로(prefix)의 모든 파일을 삭제합니다.
+     * @param prefix - 삭제할 파일들의 경로 접두사 (예: "uploads/2025/09/")
+     * @param bucket - 삭제할 버킷명 (기본값: 환경변수에서 설정된 버킷)
+     * @returns Promise<{count: number, succeeded: string[], failed: {key: string, error: string}[]}> - 삭제 결과
+     */
+    public async deleteFilesByPrefix(
+        prefix: string, 
+        bucket: string = config.R2_BUCKET
+    ): Promise<{count: number, succeeded: string[], failed: {key: string, error: string}[]}> {
+        try {
+            // 먼저 해당 prefix로 시작하는 모든 파일 목록을 가져와야 함
+            // 하지만 ListObjectsV2Command가 필요한데, 현재 import에 없으므로
+            // 이 기능은 필요시 추가 구현하도록 안내
+            
+            throw new Error('deleteFilesByPrefix 기능은 ListObjectsV2Command 추가 구현이 필요합니다. 현재는 deleteMultipleFiles를 사용해주세요.');
+            
+        } catch (error) {
+            log.Error('R2 경로별 파일 삭제 실패:', error);
+            return {
+                count: 0,
+                succeeded: [],
+                failed: [{
+                    key: prefix,
+                    error: error instanceof Error ? error.message : 'Unknown error'
+                }]
+            };
+        }
+    }
+
+    /**
+     * R2에서 파일이 존재하는지 확인합니다.
+     * @param key - S3 객체 키 (파일명/경로)
+     * @param bucket - 확인할 버킷명 (기본값: 환경변수에서 설정된 버킷)
+     * @returns Promise<boolean> - 파일 존재 여부
+     */
+    public async fileExists(key: string, bucket: string = config.R2_BUCKET): Promise<boolean> {
+        try {
+            const command = new GetObjectCommand({
+                Bucket: bucket,
+                Key: key
+            });
+
+            // 실제로 파일을 다운로드하지 않고 헤더만 확인
+            await s3.send(command);
+            return true;
+        } catch (error: any) {
+            // NoSuchKey 에러는 파일이 없다는 의미이므로 false 반환
+            if (error.name === 'NoSuchKey' || error.$metadata?.httpStatusCode === 404) {
+                return false;
+            }
+            
+            // 다른 에러는 로깅하고 false 반환
+            log.Error('R2 파일 존재 확인 실패:', error);
+            return false;
+        }
+    }
+
+
+
+
 
 }

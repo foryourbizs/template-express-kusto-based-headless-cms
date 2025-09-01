@@ -10,7 +10,8 @@ const router = new ExpressRouter();
  * @returns 삭제 결과
  */
 router.WITH('authJwtGuardRoleCheck', { requiredRoles: ['admin'] })
-router.DELETE_VALIDATED(
+router.DELETE_SLUG_VALIDATED(
+    ["fileUuid"],
     {
         params: {
             fileUuid: { type: 'string', required: true }
@@ -50,6 +51,8 @@ router.DELETE_VALIDATED(
     async (req, res, injected, repo, db) => {
     try {
         const { fileUuid } = req.params;
+
+        console.log(fileUuid);
 
         if (!fileUuid) {
             res.status(400);
@@ -120,6 +123,6 @@ router.DELETE_VALIDATED(
             error: error instanceof Error ? error.message : '알 수 없는 오류'
         });
     }
-});
+}, {exact: true});
 
 export default router.build();

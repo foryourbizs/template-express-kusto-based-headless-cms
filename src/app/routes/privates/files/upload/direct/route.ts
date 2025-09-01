@@ -93,7 +93,8 @@ router.PUT_ARRAY_FILE(storage, 'files', async (req, res, injected, repo, db) => 
                 const fileBuffer = await readFile(file.path);
                 
                 // 2. R2에 업로드할 키 생성 (원본 파일명 유지하되 중복 방지)
-                const r2Key = `${UPLOAD_DIR}${file.filename}`;
+                // const r2Key = `${UPLOAD_DIR}${file.filename}`;
+                const r2Key = `${file.filename}`;
                 
                 // 3. R2에 파일 업로드
                 const uploadSuccess = await injected.cloudflareR2.uploadFile(

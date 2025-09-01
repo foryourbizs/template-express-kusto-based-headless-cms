@@ -11,6 +11,26 @@ const config = {
     R2_BUCKET: process.env.CLOUDFLARE_R2_BUCKET || ''
 };
 
+// 설정 검증
+const validateConfig = () => {
+    const missing = [];
+    if (!config.ACCESS_ID) missing.push('CLOUDFLARE_ACCESS_ID');
+    if (!config.SECRET_ACCESS_KEY) missing.push('CLOUDFLARE_SECRET_ACCESS');
+    if (!config.R2_API) missing.push('CLOUDFLARE_R2_API');
+    if (!config.R2_BUCKET) missing.push('CLOUDFLARE_R2_BUCKET');
+    
+    if (missing.length > 0) {
+        throw new Error(`Cloudflare R2 설정이 누락되었습니다: ${missing.join(', ')}`);
+    }
+};
+
+// 설정 검증 실행
+try {
+    validateConfig();
+} catch (error) {
+    log.Error('Cloudflare R2 설정 오류:', error);
+}
+
 
 // R2 접속 설정
 const s3 = new S3Client({

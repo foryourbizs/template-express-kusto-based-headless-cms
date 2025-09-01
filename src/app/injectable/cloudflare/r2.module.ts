@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, DeleteObjectsCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, DeleteObjectsCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { Readable } from 'stream';
 import { log } from '@ext/winston'
@@ -286,8 +286,72 @@ export default class CloudflareR2Module {
         }
     }
 
+    /**
+     * 파일의 메타데이터 정보를 가져옵니다.
+     * @param key - S3 객체 키 (파일명/경로)
+     * @param bucket - 확인할 버킷명 (기본값: 환경변수에서 설정된 버킷)
+     * @returns Promise<object | null> - 파일 메타데이터 (크기, 수정일 등) 또는 null
+     */
+    public async getFileMetadata(key: string, bucket: string = config.R2_BUCKET): Promise<{
+        contentLength?: number;
+        contentType?: string;
+        lastModified?: Date;
+        etag?: string;
+    } | null> {
+        try {
+            const command = new HeadObjectCommand({
+                Bucket: bucket,
+                Key: key
+            });
 
+            const response = await s3.send(command);
+            
+            return {
+                contentLength: response.ContentLength,
+                contentType: response.ContentType,
+                lastModified: response.LastModified,
+                etag: response.ETag
+            };
+        } catch (error: any) {
+            // NoSuchKey 에러는 파일이 없다는 의미이므로 null 반환
+            if (error.name === 'NoSuchKey' || error.$metadata?.httpStatusCode === 404) {
+                return null;
+            }
+            
+            // 다른 에러는 로깅하고 null 반환
+            log.Error('R2 파일 메타데이터 가져오기 실패:', error);
+            return null;
+        }
+    }
 
+    /**
+     * Range 요청으로 파일의 일부분을 다운로드합니다.
+     * @param key - S3 객체 키 (파일명/경로)
+     * @param start - 시작 바이트 위치
+     * @param end - 끝 바이트 위치
+     * @param bucket - 다운로드할 버킷명 (기본값: 환경변수에서 설정된 버킷)
+     * @returns Promise<Readable | null> - 파일 스트림 또는 null
+     */
+    public async downloadFileRange(key: string, start: number, end: number, bucket: string = config.R2_BUCKET): Promise<Readable | null> {
+        try {
+            const command = new GetObjectCommand({
+                Bucket: bucket,
+                Key: key,
+                Range: `bytes=${start}-${end}`
+            });
 
+            const response = await s3.send(command);
+            
+            if (response.Body instanceof Readable) {
+                return response.Body;
+            } else {
+                log.Error('R2 Range 다운로드 응답이 스트림이 아닙니다.');
+                return null;
+            }
+        } catch (error) {
+            log.Error('R2 Range 파일 다운로드 실패:', error);
+            return null;
+        }
+    }
 
 }

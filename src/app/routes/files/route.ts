@@ -19,9 +19,18 @@ router
     const cloudflareR2 = injected.cloudflareR2;
     const httpFileStreaming = injected.httpFileStreaming;
 
+    // 요청 시작 로그 (디버그 모드에서만)
+    if (httpFileStreaming.DEBUG_FILE_STREAMING) {
+        const requestId = Math.random().toString(36).substr(2, 6);
+        console.log(`📥 [${requestId}] File request START: ${fileName} from ${req.ip || 'unknown'}`);
+        
+        // 요청 ID를 res 객체에 저장 (나중에 사용)
+        (res as any).requestId = requestId;
+    }
+
     try {
-        // R2에서 파일 메타데이터 확인
-        const fileMetadata = await cloudflareR2.getFileMetadata(fileName);
+        // R2에서 파일 메타데이터 확인 (중복 제거)
+        const fileMetadata = await httpFileStreaming.getFileMetadataWithDeduplication(cloudflareR2, fileName);
         if (!fileMetadata) {
             res.status(404);
             return res.json({
@@ -32,8 +41,8 @@ router
 
         // 파일 확장자에 따른 Content-Type 설정
 
-        // ETag 생성 (파일명 + 타임스탬프 기반)
-        const etag = httpFileStreaming.generateETag(fileName);
+        // ETag 생성 (파일명과 메타데이터 기반으로 더 정확하게)
+        const etag = httpFileStreaming.generateETag(fileName + '_' + (fileMetadata.lastModified || fileMetadata.contentLength));
         const contentType = httpFileStreaming.getContentType(fileName);
 
         // If-None-Match 헤더 확인 (캐시 검증)
@@ -51,9 +60,7 @@ router
         let isRangeRequest = false;
 
         // 영상 파일 요청 시 간단 로그
-        if (contentType.startsWith('video/') && httpFileStreaming.DEBUG_FILE_STREAMING) {
-            console.log(`🎬 Video streaming: ${fileName} (${fileSize} bytes)`);
-        }
+        httpFileStreaming.logVideoRequest(fileName, fileSize, contentType);
 
         // Range 요청 파싱
         if (range && fileSize > 0) {
@@ -73,23 +80,23 @@ router
                 end = fileSize - 1;
             }
 
+            // Range 요청 로그 (요청 ID 포함)
             if (httpFileStreaming.DEBUG_FILE_STREAMING) {
-                const fileType = contentType.startsWith('video/') ? '📹' :
-                               contentType.startsWith('image/') ? '🖼️' :
-                               contentType.startsWith('audio/') ? '🎵' : '📄';
-                console.log(`${fileType} Range request: ${fileName}, bytes ${start}-${end}/${fileSize}`);
+                const requestId = (res as any).requestId || 'unknown';
+                console.log(`🎯 [${requestId}] Range parsed: ${fileName}, bytes ${start}-${end}/${fileSize}`);
             }
+            
+            httpFileStreaming.logRangeRequest(fileName, start, end, fileSize, contentType);
         }
 
-        // R2에서 파일 스트림 다운로드 (Range 지원)
-        let fileStream: any;
-        if (isRangeRequest && fileSize > 0) {
-            // Range 요청 처리
-            fileStream = await cloudflareR2.downloadFileRange(fileName, start, end);
-        } else {
-            // 전체 파일 다운로드
-            fileStream = await cloudflareR2.downloadFile(fileName);
-        }
+        // R2에서 파일 스트림 다운로드 (Range 지원, 중복 제거)
+        const fileStream = await httpFileStreaming.getFileStreamWithDeduplication(
+            cloudflareR2,
+            fileName,
+            isRangeRequest,
+            start,
+            end
+        );
 
         if (!fileStream) {
             res.status(500);
@@ -113,6 +120,12 @@ router
         // 스트리밍 최적화를 위한 파이프라인 사용
         try {
             await httpFileStreaming.executeStreamingPipeline(req, res, fileStream, fileName, contentType);
+            
+            // 성공적인 완료 로그 (디버그 모드에서만)
+            if (httpFileStreaming.DEBUG_FILE_STREAMING) {
+                const requestId = (res as any).requestId || 'unknown';
+                console.log(`✅ [${requestId}] File request COMPLETE: ${fileName}`);
+            }
         } catch (pipelineError: any) {
             // 응답이 아직 보내지지 않았다면 에러 응답
             if (!res.headersSent) {

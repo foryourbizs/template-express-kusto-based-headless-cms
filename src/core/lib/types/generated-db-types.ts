@@ -52,9 +52,9 @@ export interface PrismaManagerWrapOverloads {
  * Method overloads for getClient
  */
 export interface PrismaManagerClientOverloads {
-  getClient(databaseName: 'default'): DefaultInstance;
-  getClient(databaseName: 'temporary'): TemporaryInstance;
-  getClient<T = any>(databaseName: string): T;
+  getClient(databaseName: 'default'): Promise<DefaultInstance>;
+  getClient(databaseName: 'temporary'): Promise<TemporaryInstance>;
+  getClient<T = any>(databaseName: string): Promise<T>;
 }
 
 
@@ -65,7 +65,7 @@ declare module '../prismaManager' {
   interface PrismaManager {
   getWrap(databaseName: 'default'): DefaultInstance;
   getWrap(databaseName: 'temporary'): TemporaryInstance;
-  getClient(databaseName: 'default'): DefaultInstance;
-  getClient(databaseName: 'temporary'): TemporaryInstance;
+  getClient(databaseName: 'default'): Promise<DefaultInstance>;
+  getClient(databaseName: 'temporary'): Promise<TemporaryInstance>;
   }
 }

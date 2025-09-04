@@ -231,9 +231,9 @@ const corsOptions: cors.CorsOptions = {
 };
 
 
-const getCSRFMiddleware = () => {
+const getCSRFMiddleware = async () => {
     const csrfHelper = kustoManager.getModule('authCsrfHelper')!;
-    const client = kustoManager.db.getClient('temporary');
+    const client = await kustoManager.db.getClient('temporary');
 
 
     return csrfHelper.setupWithORM(client, {
@@ -248,8 +248,18 @@ const getCSRFMiddleware = () => {
     // });
 }
 
+// CSRF 미들웨어를 비동기적으로 초기화
+let csrfMiddleware: Awaited<ReturnType<typeof getCSRFMiddleware>> | null = null;
 
-const {tokenMiddleware, referrerMiddleware} =  getCSRFMiddleware();
+const initializeCSRFMiddleware = async () => {
+    if (!csrfMiddleware) {
+        csrfMiddleware = await getCSRFMiddleware();
+    }
+    return csrfMiddleware;
+};
+
+// 애플리케이션 시작 시 CSRF 미들웨어 초기화
+initializeCSRFMiddleware().catch(console.error);
 
 
 export default [
@@ -306,9 +316,16 @@ export default [
     },
 
     async (req: Request, res: Response, next: NextFunction) => {
-        
-        tokenMiddleware(req, res, next);
-        req.app.set('_csrfReferrerMiddleware', referrerMiddleware);
+        try {
+            const csrf = await initializeCSRFMiddleware();
+            const { tokenMiddleware, referrerMiddleware } = csrf;
+            
+            tokenMiddleware(req, res, next);
+            req.app.set('_csrfReferrerMiddleware', referrerMiddleware);
+        } catch (error) {
+            console.error('CSRF middleware initialization failed:', error);
+            next(error);
+        }
     },
 
 

@@ -14,6 +14,7 @@ import { RateLimiterOptionMiddlewareParams as AuthRateLimiterOptionRateLimiterOp
 import CloudflareR2Module from '@app/injectable/cloudflare/r2.module';
 import ConstantDBModule from '@app/injectable/constant/db.module';
 import ConstantServiceModule from '@app/injectable/constant/service.module';
+import HTTPFileStreamingModule from '@app/injectable/http/fileStreaming.module';
 
 // Type definitions
 type AuthCSRFHelperModuleType = InstanceType<typeof AuthCSRFHelperModule>;
@@ -22,6 +23,7 @@ type AuthJWTJsonWebTokenModuleType = InstanceType<typeof AuthJWTJsonWebTokenModu
 type CloudflareR2ModuleType = InstanceType<typeof CloudflareR2Module>;
 type ConstantDBModuleType = InstanceType<typeof ConstantDBModule>;
 type ConstantServiceModuleType = InstanceType<typeof ConstantServiceModule>;
+type HTTPFileStreamingModuleType = InstanceType<typeof HTTPFileStreamingModule>;
 type AuthCSRFReferrerMiddlewareType = ReturnType<typeof AuthCSRFReferrerMiddleware>;
 type AuthJWTGuardCheckMiddlewareType = ReturnType<typeof AuthJWTGuardCheckMiddleware>;
 type AuthJWTGuardNoLoginCheckMiddlewareType = ReturnType<typeof AuthJWTGuardNoLoginCheckMiddleware>;
@@ -38,6 +40,7 @@ export interface Injectable {
   cloudflareR2: CloudflareR2ModuleType;
   constantDb: ConstantDBModuleType;
   constantService: ConstantServiceModuleType;
+  httpFileStreaming: HTTPFileStreamingModuleType;
 }
 
 // Middleware interface
@@ -63,6 +66,7 @@ export const MODULE_REGISTRY = {
   'cloudflareR2': () => import('@app/injectable/cloudflare/r2.module'),
   'constantDb': () => import('@app/injectable/constant/db.module'),
   'constantService': () => import('@app/injectable/constant/service.module'),
+  'httpFileStreaming': () => import('@app/injectable/http/fileStreaming.module'),
 } as const;
 
 // Middleware registry for dynamic loading

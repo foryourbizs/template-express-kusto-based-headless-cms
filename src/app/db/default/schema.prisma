@@ -828,8 +828,6 @@ model SiteMenu {
   //Enum을 사용한 메뉴 유형
   type MenuType @default(INTERNAL_LINK) // 메뉴 유형 (LINK, DROPDOWN, SEPARATOR 등)
 
-
-
   // === 소프트 삭제 ===
   deletedAt DateTime? // 삭제 시간 (논리적 삭제)
 
@@ -837,6 +835,21 @@ model SiteMenu {
   createdAt DateTime @default(now()) // 파일 등록 시간
   updatedAt DateTime @updatedAt // 마지막 수정 시간
 
+  // Relations
+  parent       SiteMenu?           @relation("MenuHierarchy", fields: [parentUUID], references: [uuid])
+  children     SiteMenu[]          @relation("MenuHierarchy")
+  metaData     SiteMenuMetaData[]
+
+  // === 인덱스 최적화 ===
+  @@index([uuid])
+  @@index([groupKey])
+  @@index([parentUUID])
+  @@index([type])
+  @@index([deletedAt])
+  @@index([createdAt])
+  @@index([groupKey, parentUUID]) // 그룹별 계층 구조 조회 최적화
+  
+  @@map("site_menus")
 }
 
 model SiteMenuMetaData {
@@ -855,5 +868,16 @@ model SiteMenuMetaData {
   createdAt DateTime @default(now()) // 파일 등록 시간
   updatedAt DateTime @updatedAt // 마지막 수정 시간
 
+  // Relations
+  menu SiteMenu @relation(fields: [menuUuid], references: [uuid])
 
+  // === 인덱스 최적화 ===
+  @@index([uuid])
+  @@index([menuUuid])
+  @@index([key])
+  @@index([deletedAt])
+  @@index([menuUuid, key]) // 메뉴별 메타데이터 키 조회 최적화
+  @@unique([menuUuid, key]) // 같은 메뉴에 동일한 키 중복 방지
+
+  @@map("site_menu_metadata")
 }

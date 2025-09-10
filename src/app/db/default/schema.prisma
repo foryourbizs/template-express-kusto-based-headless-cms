@@ -278,6 +278,7 @@ model Role {
   // Relations
   userRoles   UserRole[]
   permissions RolePermission[]
+  siteMenuRoles SiteMenuRole[]
 
   @@index([name])
   @@index([isActive, isSystem])
@@ -871,6 +872,11 @@ model SiteMenu {
   //Enum을 사용한 메뉴 유형
   type MenuType @default(INTERNAL_LINK) // 메뉴 유형 (LINK, DROPDOWN, SEPARATOR 등)
 
+  // === 접근 제어 ===
+  isPublic        Boolean @default(true) // 공개 메뉴 여부 (true: 모든 사용자 접근 가능, false: 역할 기반 접근)
+  requireLogin    Boolean @default(false) // 로그인 필수 여부 (false: 비로그인도 접근 가능)
+  displayOrder    Int     @default(0) // 메뉴 표시 순서
+
   // === 소프트 삭제 ===
   deletedAt DateTime? // 삭제 시간 (논리적 삭제)
 
@@ -882,6 +888,7 @@ model SiteMenu {
   parent       SiteMenu?           @relation("MenuHierarchy", fields: [parentUUID], references: [uuid])
   children     SiteMenu[]          @relation("MenuHierarchy")
   metaData     SiteMenuMetaData[]
+  menuRoles    SiteMenuRole[]      // 메뉴별 역할 권한
 
   // === 인덱스 최적화 ===
   @@index([uuid])
@@ -890,7 +897,12 @@ model SiteMenu {
   @@index([type])
   @@index([deletedAt])
   @@index([createdAt])
+  @@index([isPublic]) // 공개 메뉴 조회 최적화
+  @@index([requireLogin]) // 로그인 필수 메뉴 조회 최적화
+  @@index([displayOrder]) // 메뉴 순서 정렬 최적화
   @@index([groupKey, parentUUID]) // 그룹별 계층 구조 조회 최적화
+  @@index([groupKey, displayOrder]) // 그룹별 순서 조회 최적화
+  @@index([isPublic, requireLogin]) // 접근 권한별 조회 최적화
   
   @@map("site_menus")
 }
@@ -923,6 +935,48 @@ model SiteMenuMetaData {
   @@unique([menuUuid, key]) // 같은 메뉴에 동일한 키 중복 방지
 
   @@map("site_menu_metadata")
+}
+
+/**
+ * 사이트 메뉴 역할별 접근 권한 테이블
+ * - 특정 메뉴를 볼 수 있는 역할을 정의
+ * - isPublic이 false인 메뉴에 대해서만 역할 기반 제어 적용
+ * - 다대다 관계로 하나의 메뉴에 여러 역할이 접근 가능
+ */
+model SiteMenuRole {
+  // === 기본 식별자 ===
+  id   BigInt @id @default(autoincrement()) // 내부용 Primary Key
+  uuid String @unique @default(uuid()) @db.Uuid // 외부 노출용 고유 식별자
+
+  // === 연결 관계 ===
+  menuUuid String @db.Uuid // 메뉴 UUID
+  roleUuid String @db.Uuid // 역할 UUID
+
+  // === 권한 부여 정보 ===
+  grantedAt DateTime  @default(now()) // 권한 부여 시간
+  expiresAt DateTime? // 권한 만료 시간 (NULL이면 영구)
+
+  // === 소프트 삭제 ===
+  deletedAt DateTime? // 삭제 시간 (논리적 삭제)
+
+  // === 감사 추적 ===
+  createdAt DateTime @default(now()) // 생성 시간
+  updatedAt DateTime @updatedAt // 수정 시간
+
+  // Relations
+  menu SiteMenu @relation(fields: [menuUuid], references: [uuid])
+  role Role     @relation(fields: [roleUuid], references: [uuid])
+
+  // === 인덱스 최적화 ===
+  @@index([menuUuid])
+  @@index([roleUuid])
+  @@index([deletedAt])
+  @@index([expiresAt])
+  @@index([menuUuid, roleUuid]) // 메뉴별 역할 조회 최적화
+
+  @@unique([menuUuid, roleUuid]) // 같은 메뉴-역할 조합 중복 방지
+
+  @@map("site_menu_roles")
 }
 
 /**

@@ -96,6 +96,44 @@ enum MenuType {
   BUTTON
 }
 
+// 게시물 유형 Enum (워드프레스 post_type 참고)
+enum PostType {
+  POST         // 일반 게시물
+  PAGE         // 정적 페이지
+  ATTACHMENT   // 첨부파일
+  REVISION     // 리비전
+  CUSTOM_POST  // 커스텀 포스트 타입
+  PRODUCT      // 상품 (WooCommerce)
+  EVENT        // 이벤트
+  GALLERY      // 갤러리
+  VIDEO        // 비디오
+  DOCUMENT     // 문서
+}
+
+// 게시물 상태 Enum (워드프레스 post_status 참고)
+enum PostStatus {
+  PUBLISH      // 게시됨
+  DRAFT        // 임시저장
+  PRIVATE      // 비공개
+  PENDING      // 승인 대기
+  TRASH        // 휴지통
+  AUTO_DRAFT   // 자동 저장 임시글
+  INHERIT      // 상속 (첨부파일용)
+  FUTURE       // 예약 게시
+}
+
+// 댓글 상태 Enum
+enum CommentStatus {
+  OPEN         // 댓글 허용
+  CLOSED       // 댓글 비허용
+}
+
+// 핑백/트랙백 상태 Enum
+enum PingStatus {
+  OPEN         // 핑백/트랙백 허용
+  CLOSED       // 핑백/트랙백 비허용
+}
+
 
 
 
@@ -186,6 +224,11 @@ model User {
 
   // Token revocation audit trails
   userRefreshTokensRevoked UserRefreshToken[] @relation("UserRefreshTokenRevokedBy")
+
+  // Post system relations
+  posts         Post[]
+  comments      Comment[]
+  postRevisions PostRevision[]
 
   // Core unique indexes
   @@index([email])
@@ -880,4 +923,312 @@ model SiteMenuMetaData {
   @@unique([menuUuid, key]) // 같은 메뉴에 동일한 키 중복 방지
 
   @@map("site_menu_metadata")
+}
+
+/**
+ * 게시물 관리 테이블
+ * - 다양한 콘텐츠 타입(포스트, 페이지, 첨부파일 등)을 통합 관리
+ * - 계층적 구조 지원 (부모-자식 관계)
+ * - 버전 관리 및 리비전 기능
+ */
+model Post {
+  // === 기본 식별자 ===
+  id   BigInt @id @default(autoincrement()) // 내부용 Primary Key
+  uuid String @unique @default(uuid()) @db.Uuid // 외부 노출용 고유 식별자
+
+  // === 작성자 정보 ===
+  authorUuid String @db.Uuid // 작성자 UUID
+
+  // === 콘텐츠 정보 ===
+  title         String  @db.VarChar(255) // 게시물 제목
+  content       String? @db.Text // 게시물 내용 (HTML 포함)
+  excerpt       String? @db.VarChar(1000) // 요약/발췌문
+  slug          String  @unique @db.VarChar(200) // URL 슬러그 (SEO용)
+
+  // === 게시물 분류 ===
+  postType   PostType   @default(POST) // 게시물 유형
+  postStatus PostStatus @default(DRAFT) // 게시물 상태
+
+  // === 댓글 및 핑백 설정 ===
+  commentStatus CommentStatus @default(OPEN) // 댓글 허용 여부
+  pingStatus    PingStatus    @default(OPEN) // 핑백/트랙백 허용 여부
+
+  // === 패스워드 보호 ===
+  postPassword String? @db.VarChar(255) // 게시물 비밀번호 (해시화)
+
+  // === 계층 구조 ===
+  parentUuid String? @db.Uuid // 부모 게시물 UUID (페이지 계층, 첨부파일 등)
+  menuOrder  Int     @default(0) // 정렬 순서
+
+  // === SEO 및 메타데이터 ===
+  metaTitle       String? @db.VarChar(255) // SEO 제목
+  metaDescription String? @db.VarChar(500) // SEO 설명
+  featuredImage   String? @db.Uuid // 대표 이미지 파일 UUID
+
+  // === 조회수 및 통계 ===
+  viewCount    BigInt @default(0) // 조회수
+  likeCount    BigInt @default(0) // 좋아요 수
+  commentCount BigInt @default(0) // 댓글 수
+
+  // === 게시 일정 ===
+  publishedAt DateTime? // 게시 시간 (예약 게시 지원)
+
+  // === 소프트 삭제 ===
+  deletedAt DateTime? // 삭제 시간 (논리적 삭제)
+
+  // === 감사 추적 ===
+  createdAt DateTime @default(now()) // 생성 시간
+  updatedAt DateTime @updatedAt // 마지막 수정 시간
+
+  // Relations
+  author       User            @relation(fields: [authorUuid], references: [uuid])
+  parent       Post?           @relation("PostHierarchy", fields: [parentUuid], references: [uuid])
+  children     Post[]          @relation("PostHierarchy")
+  metaData     PostMeta[]
+  taxonomies   PostTaxonomy[]
+  comments     Comment[]
+  revisions    PostRevision[]
+
+  // === 인덱스 최적화 ===
+  @@index([uuid])
+  @@index([slug])
+  @@index([authorUuid])
+  @@index([postType])
+  @@index([postStatus])
+  @@index([parentUuid])
+  @@index([publishedAt])
+  @@index([deletedAt])
+  @@index([createdAt])
+  @@index([postType, postStatus]) // 타입별 상태 조회 최적화
+  @@index([postStatus, publishedAt]) // 게시 상태별 날짜 조회
+  @@index([authorUuid, postType]) // 작성자별 포스트 타입 조회
+  @@index([viewCount]) // 인기 게시물 조회
+  @@index([featuredImage]) // 대표 이미지별 조회
+
+  @@map("posts")
+}
+
+/**
+ * 게시물 메타데이터 테이블
+ * - 게시물의 커스텀 필드 및 추가 정보 저장
+ * - 플러그인 및 테마에서 사용하는 메타데이터 관리
+ */
+model PostMeta {
+  // === 기본 식별자 ===
+  id   BigInt @id @default(autoincrement()) // 내부용 Primary Key
+  uuid String @unique @default(uuid()) @db.Uuid // 외부 노출용 고유 식별자
+
+  // === 연결 관계 ===
+  postUuid String @db.Uuid // 게시물 UUID
+
+  // === 메타데이터 ===
+  metaKey   String @db.VarChar(255) // 메타 키
+  metaValue String? @db.Text // 메타 값 (대용량 데이터 지원)
+
+  // === 감사 추적 ===
+  createdAt DateTime @default(now()) // 생성 시간
+  updatedAt DateTime @updatedAt // 수정 시간
+
+  // Relations
+  post Post @relation(fields: [postUuid], references: [uuid])
+
+  // === 인덱스 최적화 ===
+  @@index([postUuid])
+  @@index([metaKey])
+  @@index([postUuid, metaKey]) // 포스트별 메타키 조회 최적화
+
+  @@map("post_meta")
+}
+
+/**
+ * 분류체계 테이블 (워드프레스 wp_terms 참고)
+ * - 카테고리, 태그, 커스텀 분류 등을 통합 관리
+ */
+model Term {
+  // === 기본 식별자 ===
+  id   BigInt @id @default(autoincrement()) // 내부용 Primary Key
+  uuid String @unique @default(uuid()) @db.Uuid // 외부 노출용 고유 식별자
+
+  // === 분류 정보 ===
+  name String @db.VarChar(200) // 분류명
+  slug String @unique @db.VarChar(200) // URL 슬러그
+
+  // === 소프트 삭제 ===
+  deletedAt DateTime? // 삭제 시간 (논리적 삭제)
+
+  // === 감사 추적 ===
+  createdAt DateTime @default(now()) // 생성 시간
+  updatedAt DateTime @updatedAt // 수정 시간
+
+  // Relations
+  taxonomies TermTaxonomy[]
+
+  // === 인덱스 최적화 ===
+  @@index([name])
+  @@index([slug])
+  @@index([deletedAt])
+
+  @@map("terms")
+}
+
+/**
+ * 분류체계 상세 테이블
+ * - 분류의 유형(카테고리, 태그 등)과 계층 구조 정의
+ */
+model TermTaxonomy {
+  // === 기본 식별자 ===
+  id   BigInt @id @default(autoincrement()) // 내부용 Primary Key
+  uuid String @unique @default(uuid()) @db.Uuid // 외부 노출용 고유 식별자
+
+  // === 연결 관계 ===
+  termUuid String @db.Uuid // 분류 UUID
+
+  // === 분류체계 정보 ===
+  taxonomy    String  @db.VarChar(32) // 분류체계 유형 (category, tag, custom_taxonomy)
+  description String? @db.Text // 분류 설명
+  parentUuid  String? @db.Uuid // 부모 분류체계 UUID (계층 구조)
+  count       BigInt  @default(0) // 해당 분류의 게시물 수
+
+  // === 감사 추적 ===
+  createdAt DateTime @default(now()) // 생성 시간
+  updatedAt DateTime @updatedAt // 수정 시간
+
+  // Relations
+  term          Term             @relation(fields: [termUuid], references: [uuid])
+  parent        TermTaxonomy?    @relation("TaxonomyHierarchy", fields: [parentUuid], references: [uuid])
+  children      TermTaxonomy[]   @relation("TaxonomyHierarchy")
+  postTaxonomies PostTaxonomy[]
+
+  // === 인덱스 최적화 ===
+  @@index([termUuid])
+  @@index([taxonomy])
+  @@index([parentUuid])
+  @@index([taxonomy, parentUuid]) // 분류체계별 계층 조회
+
+  @@unique([termUuid, taxonomy]) // 같은 term은 같은 taxonomy에 중복 불가
+
+  @@map("term_taxonomy")
+}
+
+/**
+ * 게시물-분류 연결 테이블
+ * - 게시물과 분류체계 간의 다대다 관계 관리
+ */
+model PostTaxonomy {
+  // === 기본 식별자 ===
+  id BigInt @id @default(autoincrement()) // 내부용 Primary Key
+
+  // === 연결 관계 ===
+  postUuid         String @db.Uuid // 게시물 UUID
+  termTaxonomyUuid String @db.Uuid // 분류체계 UUID
+
+  // === 관계 메타데이터 ===
+  termOrder Int @default(0) // 분류 순서
+
+  // Relations
+  post         Post         @relation(fields: [postUuid], references: [uuid])
+  termTaxonomy TermTaxonomy @relation(fields: [termTaxonomyUuid], references: [uuid])
+
+  // === 인덱스 최적화 ===
+  @@index([postUuid])
+  @@index([termTaxonomyUuid])
+
+  @@unique([postUuid, termTaxonomyUuid]) // 중복 관계 방지
+
+  @@map("post_taxonomy")
+}
+
+/**
+ * 댓글 관리 테이블 (워드프레스 wp_comments 참고)
+ * - 게시물에 대한 댓글 및 대댓글 관리
+ */
+model Comment {
+  // === 기본 식별자 ===
+  id   BigInt @id @default(autoincrement()) // 내부용 Primary Key
+  uuid String @unique @default(uuid()) @db.Uuid // 외부 노출용 고유 식별자
+
+  // === 연결 관계 ===
+  postUuid   String  @db.Uuid // 댓글이 달린 게시물 UUID
+  parentUuid String? @db.Uuid // 부모 댓글 UUID (대댓글용)
+
+  // === 댓글 작성자 정보 ===
+  authorUuid  String? @db.Uuid // 로그인 사용자 UUID (익명 댓글시 NULL)
+  authorName  String  @db.VarChar(255) // 댓글 작성자 이름
+  authorEmail String  @db.VarChar(255) // 댓글 작성자 이메일
+  authorUrl   String? @db.VarChar(500) // 댓글 작성자 웹사이트
+  authorIp    String? @db.VarChar(45) // 작성자 IP 주소 (IPv6 지원)
+
+  // === 댓글 내용 ===
+  content String @db.Text // 댓글 내용
+
+  // === 댓글 상태 ===
+  isApproved Boolean   @default(false) // 댓글 승인 여부
+  // === 스팸 필터링 ===
+  isSpam     Boolean   @default(false) // 스팸 댓글 여부
+  spamScore  Float?    @default(0.0) // 스팸 점수 (0.0~1.0)
+  // === 소프트 삭제 ===
+  deletedAt  DateTime? // 삭제 시간 (논리적 삭제)
+
+  // === 감사 추적 ===
+  createdAt DateTime @default(now()) // 댓글 작성 시간
+  updatedAt DateTime @updatedAt // 마지막 수정 시간
+
+  // Relations
+  post     Post      @relation(fields: [postUuid], references: [uuid])
+  author   User?     @relation(fields: [authorUuid], references: [uuid])
+  parent   Comment?  @relation("CommentHierarchy", fields: [parentUuid], references: [uuid])
+  children Comment[] @relation("CommentHierarchy")
+
+  // === 인덱스 최적화 ===
+  @@index([postUuid])
+  @@index([parentUuid])
+  @@index([authorUuid])
+  @@index([isApproved])
+  @@index([isSpam])
+  @@index([createdAt])
+  @@index([deletedAt])
+  @@index([postUuid, isApproved]) // 게시물별 승인된 댓글 조회
+  @@index([authorIp]) // IP별 댓글 추적
+
+  @@map("comments")
+}
+
+/**
+ * 게시물 리비전 테이블 (워드프레스 wp_posts의 revision 기능)
+ * - 게시물의 수정 이력 관리
+ * - 이전 버전으로의 롤백 기능 제공
+ */
+model PostRevision {
+  // === 기본 식별자 ===
+  id   BigInt @id @default(autoincrement()) // 내부용 Primary Key
+  uuid String @unique @default(uuid()) @db.Uuid // 외부 노출용 고유 식별자
+
+  // === 연결 관계 ===
+  postUuid   String @db.Uuid // 원본 게시물 UUID
+  authorUuid String @db.Uuid // 수정한 사용자 UUID
+
+  // === 리비전 정보 ===
+  title   String  @db.VarChar(255) // 수정 당시 제목
+  content String? @db.Text // 수정 당시 내용
+  excerpt String? @db.VarChar(1000) // 수정 당시 요약
+
+  // === 리비전 메타데이터 ===
+  revisionNumber Int     @default(1) // 리비전 번호
+  changeReason   String? @db.VarChar(500) // 수정 사유
+
+  // === 감사 추적 ===
+  createdAt DateTime @default(now()) // 리비전 생성 시간
+
+  // Relations
+  post   Post @relation(fields: [postUuid], references: [uuid])
+  author User @relation(fields: [authorUuid], references: [uuid])
+
+  // === 인덱스 최적화 ===
+  @@index([postUuid])
+  @@index([authorUuid])
+  @@index([revisionNumber])
+  @@index([createdAt])
+  @@index([postUuid, revisionNumber]) // 게시물별 리비전 조회
+
+  @@map("post_revisions")
 }

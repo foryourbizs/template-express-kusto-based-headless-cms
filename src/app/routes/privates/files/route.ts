@@ -3,7 +3,7 @@ const router = new ExpressRouter();
 
 
 router
-.CRUD('default', 'files', {
+.CRUD('default', 'file', {
     primaryKey: 'uuid'
 })
 

@@ -13,7 +13,7 @@ export default class FilesRepository extends BaseRepository<'default'> {
      * @returns List of active files
      */
     public async getFilesListSimply(includeStorage = false, includeUploader = false) {
-        return this.client.files.findMany({
+        return this.client.file.findMany({
             where: {
                 deletedAt: null
             },
@@ -34,7 +34,7 @@ export default class FilesRepository extends BaseRepository<'default'> {
      * @returns File with optional relations
      */
     public async getFileByUuid(uuid: string, includeRelations = true) {
-        return this.client.files.findUnique({
+        return this.client.file.findUnique({
             where: { uuid },
             include: includeRelations ? {
                 storage: true,
@@ -67,7 +67,7 @@ export default class FilesRepository extends BaseRepository<'default'> {
         accessPermissionUuid?: string;
         expiresAt?: Date;
     }) {
-        return this.client.files.create({
+        return this.client.file.create({
             data: {
                 filename: data.filename,
                 originalName: data.originalName,
@@ -119,7 +119,7 @@ export default class FilesRepository extends BaseRepository<'default'> {
         accessPermissionUuid?: string;
         expiresAt?: Date;
     }) {
-        return this.client.files.update({
+        return this.client.file.update({
             where: { uuid },
             data: {
                 ...(data.filename !== undefined && { filename: data.filename }),
@@ -153,7 +153,7 @@ export default class FilesRepository extends BaseRepository<'default'> {
      * @returns Updated file with deletedAt timestamp
      */
     public async softDeleteFile(uuid: string) {
-        return this.client.files.update({
+        return this.client.file.update({
             where: { uuid },
             data: {
                 deletedAt: new Date(),
@@ -168,7 +168,7 @@ export default class FilesRepository extends BaseRepository<'default'> {
      * @returns Restored file with deletedAt set to null
      */
     public async restoreFile(uuid: string) {
-        return this.client.files.update({
+        return this.client.file.update({
             where: { uuid },
             data: {
                 deletedAt: null,
@@ -183,7 +183,7 @@ export default class FilesRepository extends BaseRepository<'default'> {
      * @returns Updated file
      */
     public async markFileAsExists(uuid: string) {
-        return this.client.files.update({
+        return this.client.file.update({
             where: { uuid },
             data: { exists: true }
         });
@@ -195,7 +195,7 @@ export default class FilesRepository extends BaseRepository<'default'> {
      * @returns Updated file
      */
     public async markFileAsMissing(uuid: string) {
-        return this.client.files.update({
+        return this.client.file.update({
             where: { uuid },
             data: { exists: false }
         });
@@ -208,7 +208,7 @@ export default class FilesRepository extends BaseRepository<'default'> {
      * @returns Files in specified storage
      */
     public async getFilesByStorage(storageUuid: string, includeDeleted = false) {
-        return this.client.files.findMany({
+        return this.client.file.findMany({
             where: {
                 storageUuid,
                 ...(includeDeleted ? {} : { deletedAt: null })
@@ -230,7 +230,7 @@ export default class FilesRepository extends BaseRepository<'default'> {
      * @returns Files uploaded by specified user
      */
     public async getFilesByUploader(uploaderUuid: string, includeDeleted = false) {
-        return this.client.files.findMany({
+        return this.client.file.findMany({
             where: {
                 uploadedBy: uploaderUuid,
                 ...(includeDeleted ? {} : { deletedAt: null })
@@ -252,7 +252,7 @@ export default class FilesRepository extends BaseRepository<'default'> {
      * @returns Files with specified MIME type
      */
     public async getFilesByMimeType(mimeType: string, includeDeleted = false) {
-        return this.client.files.findMany({
+        return this.client.file.findMany({
             where: {
                 mimeType,
                 ...(includeDeleted ? {} : { deletedAt: null })
@@ -274,7 +274,7 @@ export default class FilesRepository extends BaseRepository<'default'> {
      * @returns Files matching search term
      */
     public async searchFilesByName(searchTerm: string, includeDeleted = false) {
-        return this.client.files.findMany({
+        return this.client.file.findMany({
             where: {
                 OR: [
                     { filename: { contains: searchTerm, mode: 'insensitive' } },
@@ -297,7 +297,7 @@ export default class FilesRepository extends BaseRepository<'default'> {
      * @returns Files that have expired
      */
     public async getExpiredFiles() {
-        return this.client.files.findMany({
+        return this.client.file.findMany({
             where: {
                 expiresAt: {
                     lt: new Date()
@@ -340,13 +340,13 @@ export default class FilesRepository extends BaseRepository<'default'> {
         }
     ) {
         // First, try to find existing file
-        const existingFile = await this.client.files.findFirst({
+        const existingFile = await this.client.file.findFirst({
             where: whereCondition
         });
 
         if (existingFile) {
             // Update existing file
-            return this.client.files.update({
+            return this.client.file.update({
                 where: { uuid: existingFile.uuid },
                 data: {
                     filename: data.filename,
@@ -374,7 +374,7 @@ export default class FilesRepository extends BaseRepository<'default'> {
             });
         } else {
             // Create new file
-            return this.client.files.create({
+            return this.client.file.create({
                 data: {
                     filename: data.filename,
                     originalName: data.originalName,

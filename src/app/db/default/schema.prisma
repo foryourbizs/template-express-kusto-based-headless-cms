@@ -90,7 +90,11 @@ enum AuditAction {
 
 
 
-
+enum MenuType {
+  INTERNAL_LINK
+  EXTERNAL_LINK
+  BUTTON
+}
 
 
 
@@ -178,7 +182,7 @@ model User {
   tokenBlacklist    UserTokenBlacklist[]
   rateLimitLogs     UserRateLimit[]
   securityEvents    UserSecurityEvent[]
-  uploadedFiles     Files[]
+  uploadedFiles     File[]
 
   // Token revocation audit trails
   userRefreshTokensRevoked UserRefreshToken[] @relation("UserRefreshTokenRevokedBy")
@@ -266,7 +270,7 @@ model Permission {
   // Relations
   rolePermissions RolePermission[]
   userPermissions UserPermission[]
-  files           Files[]
+  files           File[]
 
   @@unique([resource, action])
   @@index([resource])
@@ -724,7 +728,7 @@ model ObjectStorages {
   updatedAt DateTime @updatedAt // 마지막 수정 시간
 
   // Relations
-  files Files[] // 이 스토리지를 사용하는 파일들
+  files File[] // 이 스토리지를 사용하는 파일들
 
   @@index([name])
   @@index([provider])
@@ -739,7 +743,7 @@ model ObjectStorages {
  * - 파일 실존 여부, 접근 URL, 경로 등을 추적
  * - 파일 업로드, 삭제, 검증 기능을 위한 상태 관리
  */
-model Files {
+model File {
   // === 기본 식별자 ===
   id   BigInt @id @default(autoincrement()) // 내부용 Primary Key
   uuid String @unique @default(uuid()) @db.Uuid // 외부 노출용 고유 식별자
@@ -802,4 +806,54 @@ model Files {
   @@index([isArchived, deletedAt]) // 아카이브 관리용
 
   @@map("files")
+}
+
+
+
+
+
+// 계층적 메뉴 구조 테이블
+model SiteMenu {
+  // === 기본 식별자 ===
+  id   BigInt @id @default(autoincrement()) // 내부용 Primary Key
+  uuid String @unique @default(uuid()) @db.Uuid // 외부 노출용 고유 식별자
+
+  groupKey String  @db.VarChar(30) // 메뉴 그룹 키 (예: "gnb", "snb")
+  parentUUID String? @db.Uuid // 상위 메뉴 UUID (NULL이면 최상위 메뉴)
+
+  // === 메뉴 정보 ===
+  title       String  @db.VarChar(100) // 메뉴명 (예: "Home", "Profile")
+  description String? @db.VarChar(255) // 메뉴 설명 (툴팁 등)
+
+  //Enum을 사용한 메뉴 유형
+  type MenuType @default(INTERNAL_LINK) // 메뉴 유형 (LINK, DROPDOWN, SEPARATOR 등)
+
+
+
+  // === 소프트 삭제 ===
+  deletedAt DateTime? // 삭제 시간 (논리적 삭제)
+
+  // === 감사 추적 ===
+  createdAt DateTime @default(now()) // 파일 등록 시간
+  updatedAt DateTime @updatedAt // 마지막 수정 시간
+
+}
+
+model SiteMenuMetaData {
+  // === 기본 식별자 ===
+  id   BigInt @id @default(autoincrement()) // 내부용 Primary Key
+  uuid String @unique @default(uuid()) @db.Uuid // 외부 노출용 고유 식별자
+
+  menuUuid String @db.Uuid // 연결된 메뉴 UUID
+  key      String @db.VarChar(100) // 메타데이터 키
+  value    String @db.VarChar(255) // 메타데이터 값
+
+  // === 소프트 삭제 ===
+  deletedAt DateTime? // 삭제 시간 (논리적 삭제)
+
+  // === 감사 추적 ===
+  createdAt DateTime @default(now()) // 파일 등록 시간
+  updatedAt DateTime @updatedAt // 마지막 수정 시간
+
+
 }

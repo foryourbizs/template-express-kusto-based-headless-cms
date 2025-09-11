@@ -220,7 +220,7 @@ model User {
   tokenBlacklist    UserTokenBlacklist[]
   rateLimitLogs     UserRateLimit[]
   securityEvents    UserSecurityEvent[]
-  uploadedFiles     File[]
+  uploadedFiles     Files[]
 
   // Token revocation audit trails
   userRefreshTokensRevoked UserRefreshToken[] @relation("UserRefreshTokenRevokedBy")
@@ -314,7 +314,7 @@ model Permission {
   // Relations
   rolePermissions RolePermission[]
   userPermissions UserPermission[]
-  files           File[]
+  files           Files[]
 
   @@unique([resource, action])
   @@index([resource])
@@ -772,7 +772,7 @@ model ObjectStorages {
   updatedAt DateTime @updatedAt // 마지막 수정 시간
 
   // Relations
-  files File[] // 이 스토리지를 사용하는 파일들
+  files Files[] // 이 스토리지를 사용하는 파일들
 
   @@index([name])
   @@index([provider])
@@ -787,7 +787,7 @@ model ObjectStorages {
  * - 파일 실존 여부, 접근 URL, 경로 등을 추적
  * - 파일 업로드, 삭제, 검증 기능을 위한 상태 관리
  */
-model File {
+model Files {
   // === 기본 식별자 ===
   id   BigInt @id @default(autoincrement()) // 내부용 Primary Key
   uuid String @unique @default(uuid()) @db.Uuid // 외부 노출용 고유 식별자

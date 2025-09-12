@@ -2502,10 +2502,6 @@ export class ExpressRouter {
                 // JSON:API Content-Type ?�더 ?�정
                 res.setHeader('Content-Type', 'application/vnd.api+json');
                 res.setHeader('Vary', 'Accept');
-                
-
-                console.log(modelName, client);
-
 
                 // 쿼리 ?�라미터 ?�싱
                 const queryParams = CrudQueryParser.parseQuery(req);

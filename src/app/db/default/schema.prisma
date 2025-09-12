@@ -88,8 +88,6 @@ enum AuditAction {
   TOKEN_REFRESH
 }
 
-
-
 enum MenuType {
   INTERNAL_LINK
   EXTERNAL_LINK
@@ -98,45 +96,41 @@ enum MenuType {
 
 // 게시물 유형 Enum (워드프레스 post_type 참고)
 enum PostType {
-  POST         // 일반 게시물
-  PAGE         // 정적 페이지
-  ATTACHMENT   // 첨부파일
-  REVISION     // 리비전
-  CUSTOM_POST  // 커스텀 포스트 타입
-  PRODUCT      // 상품 (WooCommerce)
-  EVENT        // 이벤트
-  GALLERY      // 갤러리
-  VIDEO        // 비디오
-  DOCUMENT     // 문서
+  POST // 일반 게시물
+  PAGE // 정적 페이지
+  ATTACHMENT // 첨부파일
+  REVISION // 리비전
+  CUSTOM_POST // 커스텀 포스트 타입
+  PRODUCT // 상품 (WooCommerce)
+  EVENT // 이벤트
+  GALLERY // 갤러리
+  VIDEO // 비디오
+  DOCUMENT // 문서
 }
 
 // 게시물 상태 Enum (워드프레스 post_status 참고)
 enum PostStatus {
-  PUBLISH      // 게시됨
-  DRAFT        // 임시저장
-  PRIVATE      // 비공개
-  PENDING      // 승인 대기
-  TRASH        // 휴지통
-  AUTO_DRAFT   // 자동 저장 임시글
-  INHERIT      // 상속 (첨부파일용)
-  FUTURE       // 예약 게시
+  PUBLISH // 게시됨
+  DRAFT // 임시저장
+  PRIVATE // 비공개
+  PENDING // 승인 대기
+  TRASH // 휴지통
+  AUTO_DRAFT // 자동 저장 임시글
+  INHERIT // 상속 (첨부파일용)
+  FUTURE // 예약 게시
 }
 
 // 댓글 상태 Enum
 enum CommentStatus {
-  OPEN         // 댓글 허용
-  CLOSED       // 댓글 비허용
+  OPEN // 댓글 허용
+  CLOSED // 댓글 비허용
 }
 
 // 핑백/트랙백 상태 Enum
 enum PingStatus {
-  OPEN         // 핑백/트랙백 허용
-  CLOSED       // 핑백/트랙백 비허용
+  OPEN // 핑백/트랙백 허용
+  CLOSED // 핑백/트랙백 비허용
 }
-
-
-
-
 
 // HTTP 메소드 Enum
 enum HttpMethod {
@@ -151,10 +145,10 @@ enum HttpMethod {
 
 // 파일 접근 레벨 Enum (기본 권한 참고용)
 enum FileAccessLevel {
-  PUBLIC    // 모든 사용자 접근 가능 (권한 불필요)
-  PRIVATE   // 소유자만 접근 가능 (files.read.own 권한)
+  PUBLIC // 모든 사용자 접근 가능 (권한 불필요)
+  PRIVATE // 소유자만 접근 가능 (files.read.own 권한)
   PROTECTED // 특정 권한 보유자만 접근 (files.read 권한)
-  INTERNAL  // 시스템 내부용 (files.read.system 권한)
+  INTERNAL // 시스템 내부용 (files.read.system 권한)
 }
 
 // ########################################
@@ -210,17 +204,17 @@ model User {
   deletedAt          DateTime? // 삭제 시간 (NULL이면 활성 상태)
 
   // === 감사 추적 (Audit Trail) ===
-  createdAt         DateTime               @default(now()) // 계정 생성 시간
-  updatedAt         DateTime               @updatedAt // 마지막 수정 시간 (자동 업데이트)  // Direct Relations
-  roles             UserRole[]
-  sessions          UserSession[]
-  refreshTokens     UserRefreshToken[]
-  auditLogs         UserAuditLog[]
-  permissions       UserPermission[]
-  tokenBlacklist    UserTokenBlacklist[]
-  rateLimitLogs     UserRateLimit[]
-  securityEvents    UserSecurityEvent[]
-  uploadedFiles     Files[]
+  createdAt      DateTime             @default(now()) // 계정 생성 시간
+  updatedAt      DateTime             @updatedAt // 마지막 수정 시간 (자동 업데이트)  // Direct Relations
+  roles          UserRole[]
+  sessions       UserSession[]
+  refreshTokens  UserRefreshToken[]
+  auditLogs      UserAuditLog[]
+  permissions    UserPermission[]
+  tokenBlacklist UserTokenBlacklist[]
+  rateLimitLogs  UserRateLimit[]
+  securityEvents UserSecurityEvent[]
+  uploadedFiles  Files[]
 
   // Token revocation audit trails
   userRefreshTokensRevoked UserRefreshToken[] @relation("UserRefreshTokenRevokedBy")
@@ -276,8 +270,8 @@ model Role {
   updatedAt DateTime @updatedAt // 마지막 수정 시간
 
   // Relations
-  userRoles   UserRole[]
-  permissions RolePermission[]
+  userRoles     UserRole[]
+  permissions   RolePermission[]
   siteMenuRoles SiteMenuRole[]
 
   @@index([name])
@@ -813,9 +807,9 @@ model Files {
   sha256Hash String? @db.VarChar(64) // SHA256 해시 (보안 검증용)
 
   // === 업로드 정보 ===
-  uploadedBy   String?   @db.Uuid // 업로드한 사용자 UUID
-  uploadSource String?   @db.VarChar(50) // 업로드 소스 (예: "web", "mobile", "api")
-  
+  uploadedBy   String? @db.Uuid // 업로드한 사용자 UUID
+  uploadSource String? @db.VarChar(50) // 업로드 소스 (예: "web", "mobile", "api")
+
   // === 메타데이터 ===
   metadata Json? // 추가 메타데이터 (이미지 크기, 비디오 길이 등)
 
@@ -831,9 +825,9 @@ model Files {
   updatedAt DateTime @updatedAt // 마지막 수정 시간
 
   // Relations
-  uploader         User?           @relation(fields: [uploadedBy], references: [uuid])
-  accessPermission Permission?     @relation(fields: [accessPermissionUuid], references: [uuid])
-  storage          ObjectStorages  @relation(fields: [storageUuid], references: [uuid])
+  uploader         User?          @relation(fields: [uploadedBy], references: [uuid])
+  accessPermission Permission?    @relation(fields: [accessPermissionUuid], references: [uuid])
+  storage          ObjectStorages @relation(fields: [storageUuid], references: [uuid])
 
   // === 인덱스 최적화 ===
   @@index([uuid])
@@ -848,13 +842,8 @@ model Files {
   @@index([expiresAt]) // 만료 파일 정리용
   @@index([md5Hash]) // 중복 파일 검색용
   @@index([isArchived, deletedAt]) // 아카이브 관리용
-
   @@map("files")
 }
-
-
-
-
 
 // 계층적 메뉴 구조 테이블
 model SiteMenu {
@@ -862,7 +851,7 @@ model SiteMenu {
   id   BigInt @id @default(autoincrement()) // 내부용 Primary Key
   uuid String @unique @default(uuid()) @db.Uuid // 외부 노출용 고유 식별자
 
-  groupKey String  @db.VarChar(30) // 메뉴 그룹 키 (예: "gnb", "snb")
+  groupKey   String  @db.VarChar(30) // 메뉴 그룹 키 (예: "gnb", "snb")
   parentUUID String? @db.Uuid // 상위 메뉴 UUID (NULL이면 최상위 메뉴)
 
   // === 메뉴 정보 ===
@@ -873,9 +862,9 @@ model SiteMenu {
   type MenuType @default(INTERNAL_LINK) // 메뉴 유형 (LINK, DROPDOWN, SEPARATOR 등)
 
   // === 접근 제어 ===
-  isPublic        Boolean @default(true) // 공개 메뉴 여부 (true: 모든 사용자 접근 가능, false: 역할 기반 접근)
-  requireLogin    Boolean @default(false) // 로그인 필수 여부 (false: 비로그인도 접근 가능)
-  displayOrder    Int     @default(0) // 메뉴 표시 순서
+  isPublic     Boolean @default(true) // 공개 메뉴 여부 (true: 모든 사용자 접근 가능, false: 역할 기반 접근)
+  requireLogin Boolean @default(false) // 로그인 필수 여부 (false: 비로그인도 접근 가능)
+  displayOrder Int     @default(0) // 메뉴 표시 순서
 
   // === 소프트 삭제 ===
   deletedAt DateTime? // 삭제 시간 (논리적 삭제)
@@ -885,10 +874,10 @@ model SiteMenu {
   updatedAt DateTime @updatedAt // 마지막 수정 시간
 
   // Relations
-  parent       SiteMenu?           @relation("MenuHierarchy", fields: [parentUUID], references: [uuid])
-  children     SiteMenu[]          @relation("MenuHierarchy")
-  metaData     SiteMenuMetaData[]
-  menuRoles    SiteMenuRole[]      // 메뉴별 역할 권한
+  parent    SiteMenu?          @relation("MenuHierarchy", fields: [parentUUID], references: [uuid])
+  children  SiteMenu[]         @relation("MenuHierarchy")
+  metaData  SiteMenuMetaData[]
+  menuRoles SiteMenuRole[] // 메뉴별 역할 권한
 
   // === 인덱스 최적화 ===
   @@index([uuid])
@@ -903,7 +892,6 @@ model SiteMenu {
   @@index([groupKey, parentUUID]) // 그룹별 계층 구조 조회 최적화
   @@index([groupKey, displayOrder]) // 그룹별 순서 조회 최적화
   @@index([isPublic, requireLogin]) // 접근 권한별 조회 최적화
-  
   @@map("site_menus")
 }
 
@@ -926,14 +914,13 @@ model SiteMenuMetaData {
   // Relations
   menu SiteMenu @relation(fields: [menuUuid], references: [uuid])
 
+  @@unique([menuUuid, key]) // 같은 메뉴에 동일한 키 중복 방지
   // === 인덱스 최적화 ===
   @@index([uuid])
   @@index([menuUuid])
   @@index([key])
   @@index([deletedAt])
   @@index([menuUuid, key]) // 메뉴별 메타데이터 키 조회 최적화
-  @@unique([menuUuid, key]) // 같은 메뉴에 동일한 키 중복 방지
-
   @@map("site_menu_metadata")
 }
 
@@ -967,15 +954,13 @@ model SiteMenuRole {
   menu SiteMenu @relation(fields: [menuUuid], references: [uuid])
   role Role     @relation(fields: [roleUuid], references: [uuid])
 
+  @@unique([menuUuid, roleUuid]) // 같은 메뉴-역할 조합 중복 방지
   // === 인덱스 최적화 ===
   @@index([menuUuid])
   @@index([roleUuid])
   @@index([deletedAt])
   @@index([expiresAt])
   @@index([menuUuid, roleUuid]) // 메뉴별 역할 조회 최적화
-
-  @@unique([menuUuid, roleUuid]) // 같은 메뉴-역할 조합 중복 방지
-
   @@map("site_menu_roles")
 }
 
@@ -994,10 +979,10 @@ model Post {
   authorUuid String @db.Uuid // 작성자 UUID
 
   // === 콘텐츠 정보 ===
-  title         String  @db.VarChar(255) // 게시물 제목
-  content       String? @db.Text // 게시물 내용 (HTML 포함)
-  excerpt       String? @db.VarChar(1000) // 요약/발췌문
-  slug          String  @unique @db.VarChar(200) // URL 슬러그 (SEO용)
+  title   String  @db.VarChar(255) // 게시물 제목
+  content String? @db.Text // 게시물 내용 (HTML 포함)
+  excerpt String? @db.VarChar(1000) // 요약/발췌문
+  slug    String  @unique @db.VarChar(200) // URL 슬러그 (SEO용)
 
   // === 게시물 분류 ===
   postType   PostType   @default(POST) // 게시물 유형
@@ -1035,13 +1020,13 @@ model Post {
   updatedAt DateTime @updatedAt // 마지막 수정 시간
 
   // Relations
-  author       User            @relation(fields: [authorUuid], references: [uuid])
-  parent       Post?           @relation("PostHierarchy", fields: [parentUuid], references: [uuid])
-  children     Post[]          @relation("PostHierarchy")
-  metaData     PostMeta[]
-  taxonomies   PostTaxonomy[]
-  comments     Comment[]
-  revisions    PostRevision[]
+  author     User           @relation(fields: [authorUuid], references: [uuid])
+  parent     Post?          @relation("PostHierarchy", fields: [parentUuid], references: [uuid])
+  children   Post[]         @relation("PostHierarchy")
+  metaData   PostMeta[]
+  taxonomies PostTaxonomy[]
+  comments   Comment[]
+  revisions  PostRevision[]
 
   // === 인덱스 최적화 ===
   @@index([uuid])
@@ -1058,7 +1043,6 @@ model Post {
   @@index([authorUuid, postType]) // 작성자별 포스트 타입 조회
   @@index([viewCount]) // 인기 게시물 조회
   @@index([featuredImage]) // 대표 이미지별 조회
-
   @@map("posts")
 }
 
@@ -1076,7 +1060,7 @@ model PostMeta {
   postUuid String @db.Uuid // 게시물 UUID
 
   // === 메타데이터 ===
-  metaKey   String @db.VarChar(255) // 메타 키
+  metaKey   String  @db.VarChar(255) // 메타 키
   metaValue String? @db.Text // 메타 값 (대용량 데이터 지원)
 
   // === 감사 추적 ===
@@ -1090,7 +1074,6 @@ model PostMeta {
   @@index([postUuid])
   @@index([metaKey])
   @@index([postUuid, metaKey]) // 포스트별 메타키 조회 최적화
-
   @@map("post_meta")
 }
 
@@ -1121,7 +1104,6 @@ model Term {
   @@index([name])
   @@index([slug])
   @@index([deletedAt])
-
   @@map("terms")
 }
 
@@ -1148,19 +1130,17 @@ model TermTaxonomy {
   updatedAt DateTime @updatedAt // 수정 시간
 
   // Relations
-  term          Term             @relation(fields: [termUuid], references: [uuid])
-  parent        TermTaxonomy?    @relation("TaxonomyHierarchy", fields: [parentUuid], references: [uuid])
-  children      TermTaxonomy[]   @relation("TaxonomyHierarchy")
+  term           Term           @relation(fields: [termUuid], references: [uuid])
+  parent         TermTaxonomy?  @relation("TaxonomyHierarchy", fields: [parentUuid], references: [uuid])
+  children       TermTaxonomy[] @relation("TaxonomyHierarchy")
   postTaxonomies PostTaxonomy[]
 
+  @@unique([termUuid, taxonomy]) // 같은 term은 같은 taxonomy에 중복 불가
   // === 인덱스 최적화 ===
   @@index([termUuid])
   @@index([taxonomy])
   @@index([parentUuid])
   @@index([taxonomy, parentUuid]) // 분류체계별 계층 조회
-
-  @@unique([termUuid, taxonomy]) // 같은 term은 같은 taxonomy에 중복 불가
-
   @@map("term_taxonomy")
 }
 
@@ -1183,12 +1163,10 @@ model PostTaxonomy {
   post         Post         @relation(fields: [postUuid], references: [uuid])
   termTaxonomy TermTaxonomy @relation(fields: [termTaxonomyUuid], references: [uuid])
 
+  @@unique([postUuid, termTaxonomyUuid]) // 중복 관계 방지
   // === 인덱스 최적화 ===
   @@index([postUuid])
   @@index([termTaxonomyUuid])
-
-  @@unique([postUuid, termTaxonomyUuid]) // 중복 관계 방지
-
   @@map("post_taxonomy")
 }
 
@@ -1243,7 +1221,6 @@ model Comment {
   @@index([deletedAt])
   @@index([postUuid, isApproved]) // 게시물별 승인된 댓글 조회
   @@index([authorIp]) // IP별 댓글 추적
-
   @@map("comments")
 }
 
@@ -1283,6 +1260,5 @@ model PostRevision {
   @@index([revisionNumber])
   @@index([createdAt])
   @@index([postUuid, revisionNumber]) // 게시물별 리비전 조회
-
   @@map("post_revisions")
 }

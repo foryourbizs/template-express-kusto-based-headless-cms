@@ -13,7 +13,9 @@ export default class FilesRepository extends BaseRepository<'default'> {
      * @returns List of active files
      */
     public async getFilesListSimply(includeStorage = false, includeUploader = false) {
-        return this.client.files.findMany({
+        const startTime = Date.now();
+        
+        const result = await this.client.files.findMany({
             where: {
                 deletedAt: null
             },
@@ -25,6 +27,94 @@ export default class FilesRepository extends BaseRepository<'default'> {
                 createdAt: 'desc'
             }
         });
+        
+        const endTime = Date.now();
+        console.log(`🗄️  [DB Query - getFilesListSimply] ${endTime - startTime}ms, Records: ${result.length}`);
+        
+        return result;
+    }
+
+    /**
+     * Get paginated list of files (performance optimized)
+     * @param page Page number (1-based)
+     * @param pageSize Number of items per page
+     * @param includeStorage Include storage information
+     * @param includeUploader Include uploader information
+     * @returns Paginated list of active files
+     */
+    public async getFilesListPaginated(page = 1, pageSize = 50, includeStorage = false, includeUploader = false) {
+        const startTime = Date.now();
+        const skip = (page - 1) * pageSize;
+        
+        const [files, totalCount] = await Promise.all([
+            this.client.files.findMany({
+                where: {
+                    deletedAt: null
+                },
+                include: {
+                    ...(includeStorage && { storage: true }),
+                    ...(includeUploader && { uploader: true }),
+                },
+                orderBy: {
+                    createdAt: 'desc'
+                },
+                take: pageSize,
+                skip: skip
+            }),
+            this.client.files.count({
+                where: {
+                    deletedAt: null
+                }
+            })
+        ]);
+        
+        const endTime = Date.now();
+        console.log(`🗄️  [DB Query - getFilesListPaginated] ${endTime - startTime}ms, Records: ${files.length}/${totalCount}, Page: ${page}/${Math.ceil(totalCount / pageSize)}`);
+        
+        return {
+            files,
+            pagination: {
+                page,
+                pageSize,
+                totalCount,
+                totalPages: Math.ceil(totalCount / pageSize),
+                hasNext: page < Math.ceil(totalCount / pageSize),
+                hasPrev: page > 1
+            }
+        };
+    }
+
+    /**
+     * Get minimal file list (only essential fields for performance)
+     * @param limit Maximum number of files to return
+     * @returns Minimal file information
+     */
+    public async getFilesListMinimal(limit = 100) {
+        const startTime = Date.now();
+        
+        const result = await this.client.files.findMany({
+            where: {
+                deletedAt: null
+            },
+            select: {
+                uuid: true,
+                filename: true,
+                originalName: true,
+                mimeType: true,
+                fileSize: true,
+                createdAt: true,
+                isPublic: true
+            },
+            orderBy: {
+                createdAt: 'desc'
+            },
+            take: limit
+        });
+        
+        const endTime = Date.now();
+        console.log(`🗄️  [DB Query - getFilesListMinimal] ${endTime - startTime}ms, Records: ${result.length}`);
+        
+        return result;
     }
 
     /**

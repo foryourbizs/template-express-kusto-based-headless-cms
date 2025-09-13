@@ -335,6 +335,7 @@ export default class CloudflareR2Module {
         try {
             const s3Client = this.createS3Client(storageConfig);
 
+
             const command = new HeadObjectCommand({
                 Bucket: storageConfig.bucketName,
                 Key: key
@@ -354,8 +355,12 @@ export default class CloudflareR2Module {
                 return null;
             }
             
+
             // 다른 에러는 로깅하고 null 반환
-            log.Error('R2 파일 메타데이터 가져오기 실패:', error);
+            log.Error('R2 파일 메타데이터 가져오기 실패:', {
+                key,
+                error
+            });
             return null;
         }
     }

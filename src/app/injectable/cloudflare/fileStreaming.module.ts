@@ -3,7 +3,7 @@ import { pipeline } from 'stream/promises';
 import { Request, Response } from 'express';
 import { Readable } from 'stream';
 
-import CloudflareR2Module from './r2.module'
+import CloudflareR2Module, { StorageConfig } from './r2.module'
 
 const r2Module = new CloudflareR2Module();
 

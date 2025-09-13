@@ -845,13 +845,33 @@ model Files {
   @@map("files")
 }
 
+
+
+
 // 계층적 메뉴 구조 테이블
+// 메뉴 그룹 키 관리 테이블
+model SiteMenuGroupKey {
+  id   BigInt @id @default(autoincrement()) // 내부용 Primary Key
+  uuid String @unique @default(uuid()) @db.Uuid // 외부 노출용 고유 식별자
+  key  String @unique @db.VarChar(30) // 메뉴 그룹 키 (예: "gnb", "snb")
+  name String @db.VarChar(100) // 그룹 이름 (예: "Global Navigation Bar")
+  description String? @db.VarChar(255) // 그룹 설명
+
+  // Relations
+  menus SiteMenu[]
+
+  // 인덱스
+  @@index([key])
+  @@index([uuid])
+  @@map("site_menu_group_keys")
+}
+
 model SiteMenu {
   // === 기본 식별자 ===
   id   BigInt @id @default(autoincrement()) // 내부용 Primary Key
   uuid String @unique @default(uuid()) @db.Uuid // 외부 노출용 고유 식별자
 
-  groupKey   String  @db.VarChar(30) // 메뉴 그룹 키 (예: "gnb", "snb")
+  groupKeyUuid String @db.Uuid // SiteMenuGroupKey의 uuid 참조
   parentUUID String? @db.Uuid // 상위 메뉴 UUID (NULL이면 최상위 메뉴)
 
   // === 메뉴 정보 ===
@@ -874,6 +894,7 @@ model SiteMenu {
   updatedAt DateTime @updatedAt // 마지막 수정 시간
 
   // Relations
+  groupKey SiteMenuGroupKey @relation(fields: [groupKeyUuid], references: [uuid])
   parent    SiteMenu?          @relation("MenuHierarchy", fields: [parentUUID], references: [uuid])
   children  SiteMenu[]         @relation("MenuHierarchy")
   metaData  SiteMenuMetaData[]
@@ -881,7 +902,7 @@ model SiteMenu {
 
   // === 인덱스 최적화 ===
   @@index([uuid])
-  @@index([groupKey])
+  @@index([groupKeyUuid])
   @@index([parentUUID])
   @@index([type])
   @@index([deletedAt])
@@ -889,8 +910,8 @@ model SiteMenu {
   @@index([isPublic]) // 공개 메뉴 조회 최적화
   @@index([requireLogin]) // 로그인 필수 메뉴 조회 최적화
   @@index([displayOrder]) // 메뉴 순서 정렬 최적화
-  @@index([groupKey, parentUUID]) // 그룹별 계층 구조 조회 최적화
-  @@index([groupKey, displayOrder]) // 그룹별 순서 조회 최적화
+  @@index([groupKeyUuid, parentUUID]) // 그룹별 계층 구조 조회 최적화
+  @@index([groupKeyUuid, displayOrder]) // 그룹별 순서 조회 최적화
   @@index([isPublic, requireLogin]) // 접근 권한별 조회 최적화
   @@map("site_menus")
 }

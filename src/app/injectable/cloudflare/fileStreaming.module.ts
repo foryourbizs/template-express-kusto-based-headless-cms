@@ -3,6 +3,10 @@ import { pipeline } from 'stream/promises';
 import { Request, Response } from 'express';
 import { Readable } from 'stream';
 
+import CloudflareR2Module from './r2.module'
+
+const r2Module = new CloudflareR2Module();
+
 // 디버그 모드 설정
 const DEBUG_FILE_STREAMING = process.env.DEBUG_FILE_STREAMING === 'true';
 
@@ -632,7 +636,7 @@ export default class FileStreamingModule {
      * 파일 메타데이터를 완전한 중복 제거로 조회 (동기 잠금)
      */
     public async getFileMetadataWithDeduplication(
-        cloudflareR2: any, 
+        cloudflareR2: typeof r2Module, 
         fileName: string,
         storageConfig: any
     ): Promise<any> {
@@ -668,6 +672,7 @@ export default class FileStreamingModule {
             return metadata;
         });
     }
+    
 
     /**
      * 파일별 동시 요청 제한을 통한 최적화된 스트림 조회

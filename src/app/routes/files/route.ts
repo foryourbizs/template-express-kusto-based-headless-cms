@@ -17,7 +17,7 @@ router
     }
 
     const cloudflareR2 = injected.cloudflareR2;
-    const httpFileStreaming = injected.httpFileStreaming;
+    const httpFileStreaming = injected.cloudflareFileStreaming;
 
     // 요청 시작 로그 (디버그 모드에서만)
     if (httpFileStreaming.DEBUG_FILE_STREAMING) {

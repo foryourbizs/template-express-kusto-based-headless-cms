@@ -46,20 +46,55 @@ const s3 = new S3Client({
 export default class CloudflareR2Module {
 
     /**
+     * 동적 S3 클라이언트 생성
+     * @param storageConfig - 저장소 설정 정보
+     * @returns S3Client 인스턴스
+     */
+    private createS3Client(storageConfig?: {
+        baseUrl: string;
+        region: string;
+        accessKey: string;
+        secretKey: string;
+    }): S3Client {
+        if (storageConfig) {
+            return new S3Client({
+                region: storageConfig.region || "auto",
+                endpoint: storageConfig.baseUrl,
+                credentials: {
+                    accessKeyId: storageConfig.accessKey,
+                    secretAccessKey: storageConfig.secretKey,
+                },
+            });
+        }
+        
+        // 기본 설정 사용
+        return s3;
+    }
+
+    /**
      * 파일을 R2 버킷에 업로드합니다.
      * @param key - S3 객체 키 (파일명/경로)
      * @param body - 업로드할 데이터 (Buffer, Uint8Array, string, 또는 Readable stream)
      * @param contentType - 파일의 MIME 타입 (선택사항)
-     * @param bucket - 업로드할 버킷명 (기본값: 환경변수에서 설정된 버킷)
+     * @param storageConfig - 저장소 설정 정보 (선택사항, 미제공시 기본 설정 사용)
      * @returns Promise<boolean> - 업로드 성공 여부
      */
     public async uploadFile(
         key: string, 
         body: Buffer | Uint8Array | string | Readable, 
         contentType?: string,
-        bucket: string = config.R2_BUCKET
+        storageConfig?: {
+            baseUrl: string;
+            bucketName: string;
+            region: string;
+            accessKey: string;
+            secretKey: string;
+        }
     ): Promise<boolean> {
         try {
+            const s3Client = this.createS3Client(storageConfig);
+            const bucket = storageConfig?.bucketName || config.R2_BUCKET;
+
             const command = new PutObjectCommand({
                 Bucket: bucket,
                 Key: key,
@@ -67,7 +102,7 @@ export default class CloudflareR2Module {
                 ContentType: contentType
             });
 
-            await s3.send(command);
+            await s3Client.send(command);
             return true;
         } catch (error) {
             log.Error('R2 업로드 실패:', error);
@@ -80,23 +115,32 @@ export default class CloudflareR2Module {
      * @param key - S3 객체 키 (파일명/경로)
      * @param expiresIn - URL 만료 시간 (초 단위, 기본값: 3600초 = 1시간)
      * @param contentType - 업로드할 파일의 MIME 타입 (선택사항)
-     * @param bucket - 업로드할 버킷명 (기본값: 환경변수에서 설정된 버킷)
+     * @param storageConfig - 저장소 설정 정보 (선택사항, 미제공시 기본 설정 사용)
      * @returns Promise<string | null> - presigned URL 또는 null (실패시)
      */
     public async generateUploadPresignedUrl(
         key: string,
         expiresIn: number = 3600,
         contentType?: string,
-        bucket: string = config.R2_BUCKET
+        storageConfig?: {
+            baseUrl: string;
+            bucketName: string;
+            region: string;
+            accessKey: string;
+            secretKey: string;
+        }
     ): Promise<string | null> {
         try {
+            const s3Client = this.createS3Client(storageConfig);
+            const bucket = storageConfig?.bucketName || config.R2_BUCKET;
+
             const command = new PutObjectCommand({
                 Bucket: bucket,
                 Key: key,
                 ContentType: contentType
             });
 
-            const presignedUrl = await getSignedUrl(s3, command, { expiresIn });
+            const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn });
             return presignedUrl;
         } catch (error) {
             log.Error('Presigned URL 생성 실패 (업로드):', error);

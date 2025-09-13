@@ -112,11 +112,18 @@ router.PUT_ARRAY_FILE(storage, 'files', async (req, res, injected, repo, db) => 
                 // const r2Key = `${UPLOAD_DIR}${file.filename}`;
                 const r2Key = `${file.filename}`;
                 
-                // 3. R2에 파일 업로드
+                // 3. R2에 파일 업로드 (저장소 설정 정보 포함)
                 const uploadSuccess = await injected.cloudflareR2.uploadFile(
                     r2Key,
                     fileBuffer,
-                    file.mimetype
+                    file.mimetype,
+                    {
+                        baseUrl: r2Storage.baseUrl,
+                        bucketName: r2Storage.bucketName,
+                        region: r2Storage.region,
+                        accessKey: r2Storage.accessKey,
+                        secretKey: r2Storage.secretKey
+                    }
                 );
 
                 if (uploadSuccess) {

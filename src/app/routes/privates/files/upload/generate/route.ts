@@ -66,11 +66,18 @@ router.GET_VALIDATED({
             }
         }
 
-        // presigned URL 생성
+        // presigned URL 생성 (저장소 설정 정보 포함)
         const presignedUrl = await injected.cloudflareR2.generateUploadPresignedUrl(
             key as string,
             expiresIn as number,
-            contentType as string
+            contentType as string,
+            {
+                baseUrl: r2Storage.baseUrl,
+                bucketName: r2Storage.bucketName,
+                region: r2Storage.region,
+                accessKey: r2Storage.accessKey,
+                secretKey: r2Storage.secretKey
+            }
         );
 
         if (!presignedUrl) {

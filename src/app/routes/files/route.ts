@@ -58,7 +58,7 @@ router
             bucketName: storage.bucketName,
             region: storage.region,
             accessKey: storage.accessKey,
-            secretKey: storage.secretKey
+            secretKey: storage.secretKey,
         };
 
         // R2에서 파일 메타데이터 확인 (중복 제거)

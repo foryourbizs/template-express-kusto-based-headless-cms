@@ -5,8 +5,6 @@ import { Readable } from 'stream';
 
 import CloudflareR2Module, { StorageConfig } from './r2.module'
 
-const r2Module = new CloudflareR2Module();
-
 // 디버그 모드 설정
 const DEBUG_FILE_STREAMING = process.env.DEBUG_FILE_STREAMING === 'true';
 
@@ -635,10 +633,10 @@ export default class FileStreamingModule {
     /**
      * 파일 메타데이터를 완전한 중복 제거로 조회 (동기 잠금)
      */
-    public async getFileMetadataWithDeduplication(
-        cloudflareR2: typeof r2Module, 
+    public async getFileMetadataWithDeduplication<T extends CloudflareR2Module>(
+        cloudflareR2: T, 
         fileName: string,
-        storageConfig: any
+        storageConfig: StorageConfig
     ): Promise<any> {
         const lockKey = `metadata_${fileName}`;
         
@@ -677,10 +675,10 @@ export default class FileStreamingModule {
     /**
      * 파일별 동시 요청 제한을 통한 최적화된 스트림 조회
      */
-    public async getFileStreamWithDeduplication(
-        cloudflareR2: any,
+    public async getFileStreamWithDeduplication<T extends CloudflareR2Module>(
+        cloudflareR2: T,
         fileName: string,
-        storageConfig: any,
+        storageConfig: StorageConfig,
         isRangeRequest: boolean,
         start?: number,
         end?: number

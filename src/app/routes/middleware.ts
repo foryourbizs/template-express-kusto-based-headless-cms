@@ -278,7 +278,19 @@ export default [
     /**
      * 보안 헤더 설정
      */
-    helmet(),
+    helmet({
+        crossOriginResourcePolicy: { policy: "cross-origin" },
+        crossOriginEmbedderPolicy: false,
+        contentSecurityPolicy: {
+            directives: {
+                defaultSrc: ["'self'"],
+                styleSrc: ["'self'", "'unsafe-inline'"],
+                scriptSrc: ["'self'"],
+                imgSrc: ["'self'", "data:", "http://localhost:3000", "http://localhost:3001"],
+                connectSrc: ["'self'", "http://localhost:3000", "http://localhost:3001"],
+            },
+        },
+    }),
 
     /**
      * CORS 등록하기

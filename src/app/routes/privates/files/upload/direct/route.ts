@@ -53,36 +53,52 @@ router.PUT_ARRAY_FILE(storage, 'files', async (req, res, injected, repo, db) => 
             });
         }
 
-
         const fileRepo = repo.getRepository('defaultFile');
         const storageRepo = repo.getRepository('defaultObjectStorage');
 
-        // R2_TAG로 정의된 스토리지 설정 조회
-        const r2StorageName = injected.constantService.R2_TAG;
-        if (!r2StorageName) {
-            res.status(400);
-            return res.json({
-                success: false,
-                message: 'R2 스토리지 태그가 설정되지 않았습니다.'
-            });
-        }
-
-        const r2Storage = await storageRepo.getObjectStorageByName(r2StorageName);
-        if (!r2Storage) {
-            res.status(400);
-            return res.json({
-                success: false,
-                message: `R2 스토리지 설정을 찾을 수 없습니다. (${r2StorageName})`
-            });
-        }
-
-        // 스토리지가 활성화되어 있는지 확인
-        if (!r2Storage.isActive || r2Storage.deletedAt) {
-            res.status(400);
-            return res.json({
-                success: false,
-                message: 'R2 스토리지가 비활성화되어 있습니다.'
-            });
+        // 저장소 선택 로직 (쿼리 파라미터 또는 기본 저장소 사용)
+        const storageUuid = req.query.storageUuid as string;
+        let r2Storage;
+        
+        if (storageUuid) {
+            // 특정 저장소 UUID가 지정된 경우
+            r2Storage = await storageRepo.getObjectStorageByUuid(storageUuid);
+            if (!r2Storage) {
+                res.status(400);
+                return res.json({
+                    success: false,
+                    message: `지정된 저장소를 찾을 수 없습니다: ${storageUuid}`
+                });
+            }
+            
+            // 저장소가 활성화되어 있는지 확인
+            if (!r2Storage.isActive || r2Storage.deletedAt) {
+                res.status(400);
+                return res.json({
+                    success: false,
+                    message: '지정된 저장소가 비활성화되어 있습니다.'
+                });
+            }
+        } else {
+            // 기본 저장소 우선 선택
+            r2Storage = await storageRepo.getDefaultObjectStorage();
+            
+            if (!r2Storage) {
+                // 기본 저장소가 없는 경우 첫 번째 활성 저장소 사용
+                const activeStorages = await storageRepo.getObjectStoragesListSimply();
+                const availableStorage = activeStorages.find(storage => 
+                    storage.isActive && !storage.deletedAt
+                );
+                
+                if (!availableStorage) {
+                    res.status(400);
+                    return res.json({
+                        success: false,
+                        message: '사용 가능한 저장소가 없습니다. 저장소 설정을 확인해주세요.'
+                    });
+                }
+                r2Storage = availableStorage;
+            }
         }
 
         const results = [];

@@ -135,6 +135,46 @@ export default class FilesRepository extends BaseRepository<'default'> {
     }
 
     /**
+     * Get a single file by filename (searches in filename field)
+     * @param filename File filename
+     * @param includeRelations Include related data (storage, uploader, permission)
+     * @returns File with optional relations
+     */
+    public async getFileByFilename(filename: string, includeRelations = true) {
+        return this.client.files.findFirst({
+            where: { 
+                filename: filename,
+                deletedAt: null 
+            },
+            include: includeRelations ? {
+                storage: true,
+                uploader: true,
+                accessPermission: true,
+            } : undefined
+        });
+    }
+
+    /**
+     * Get a single file by file path (searches in filePath field)
+     * @param filePath File path in storage
+     * @param includeRelations Include related data (storage, uploader, permission)
+     * @returns File with optional relations
+     */
+    public async getFileByPath(filePath: string, includeRelations = true) {
+        return this.client.files.findFirst({
+            where: { 
+                filePath: filePath,
+                deletedAt: null 
+            },
+            include: includeRelations ? {
+                storage: true,
+                uploader: true,
+                accessPermission: true,
+            } : undefined
+        });
+    }
+
+    /**
      * Create a new file record
      * @param data File data to create
      * @returns Created file with generated UUID

@@ -29,8 +29,40 @@ router
     }
 
     try {
+        // 1. 데이터베이스에서 파일 정보 조회
+        const fileRepo = repo.getRepository('defaultFile');
+        const storageRepo = repo.getRepository('defaultObjectStorage');
+        
+        const fileRecord = await fileRepo.getFileByFilename(fileName);
+        if (!fileRecord) {
+            res.status(404);
+            return res.json({
+                success: false,
+                message: 'File not found in database'
+            });
+        }
+
+        // 2. 스토리지 설정 조회
+        const storage = await storageRepo.getObjectStorageByUuid(fileRecord.storageUuid);
+        if (!storage) {
+            res.status(500);
+            return res.json({
+                success: false,
+                message: 'Storage configuration not found'
+            });
+        }
+
+        // 3. 스토리지 설정 객체 생성
+        const storageConfig = {
+            baseUrl: storage.baseUrl,
+            bucketName: storage.bucketName,
+            region: storage.region,
+            accessKey: storage.accessKey,
+            secretKey: storage.secretKey
+        };
+
         // R2에서 파일 메타데이터 확인 (중복 제거)
-        const fileMetadata = await httpFileStreaming.getFileMetadataWithDeduplication(cloudflareR2, fileName);
+        const fileMetadata = await httpFileStreaming.getFileMetadataWithDeduplication(cloudflareR2, fileName, storageConfig);
         if (!fileMetadata) {
             res.status(404);
             return res.json({
@@ -93,6 +125,7 @@ router
         const fileStream = await httpFileStreaming.getFileStreamWithDeduplication(
             cloudflareR2,
             fileName,
+            storageConfig,
             isRangeRequest,
             start,
             end

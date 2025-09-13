@@ -633,7 +633,8 @@ export default class FileStreamingModule {
      */
     public async getFileMetadataWithDeduplication(
         cloudflareR2: any, 
-        fileName: string
+        fileName: string,
+        storageConfig: any
     ): Promise<any> {
         const lockKey = `metadata_${fileName}`;
         
@@ -641,7 +642,7 @@ export default class FileStreamingModule {
         const cached = metadataCache.get(lockKey);
         if (cached && (Date.now() - cached.timestamp) < METADATA_CACHE_TTL) {
             if (DEBUG_FILE_STREAMING) {
-                console.log(`� Cache hit for metadata: ${fileName}`);
+                console.log(`📦 Cache hit for metadata: ${fileName}`);
             }
             return cached.metadata;
         }
@@ -654,7 +655,7 @@ export default class FileStreamingModule {
             }
 
             // 실제 메타데이터 조회
-            const metadata = await cloudflareR2.getFileMetadata(fileName);
+            const metadata = await cloudflareR2.getFileMetadata(fileName, storageConfig);
             
             // 캐시에 저장
             if (metadata) {
@@ -674,6 +675,7 @@ export default class FileStreamingModule {
     public async getFileStreamWithDeduplication(
         cloudflareR2: any,
         fileName: string,
+        storageConfig: any,
         isRangeRequest: boolean,
         start?: number,
         end?: number
@@ -684,9 +686,9 @@ export default class FileStreamingModule {
         try {
             // 성능 최적화: Range 요청의 경우 락 없이 바로 실행
             if (isRangeRequest && start !== undefined && end !== undefined) {
-                return await cloudflareR2.downloadFileRange(fileName, start, end);
+                return await cloudflareR2.downloadFileRange(fileName, start, end, storageConfig);
             } else {
-                return await cloudflareR2.downloadFile(fileName);
+                return await cloudflareR2.downloadFile(fileName, storageConfig);
             }
         } finally {
             // 요청 완료 후 슬롯 해제

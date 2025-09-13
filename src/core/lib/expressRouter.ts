@@ -3601,6 +3601,10 @@ export class ExpressRouter {
         const middlewares = options?.middleware?.update || [];
         
         const handler: HandlerFunction = async (req, res, injected, repo, db) => {
+
+            console.log(client);
+
+
             try {
                 // JSON:API Content-Type ?�더 ?�정
                 res.setHeader('Content-Type', 'application/vnd.api+json');
@@ -3610,7 +3614,7 @@ export class ExpressRouter {
                 //     return;
                 // }
                 
-                // ?�라미터 추출 �?검�?
+                // 파라미터 추출 검사
                 const extractResult = this.extractAndParsePrimaryKey(req, res, primaryKey, primaryKeyParser, modelName);
                 if (!extractResult.success) return; // ?�러 ?�답?� ?�퍼 메서?�에??처리
 
@@ -3626,10 +3630,7 @@ export class ExpressRouter {
                         data: {
                             type: resourceType,
                             id: String(parsedIdentifier),
-                            attributes: {
-                                // "fieldName": "fieldValue"
-                                // ?? "email": "user@example.com"
-                            }
+                            attributes: {}
                         }
                     };
                     
@@ -3685,6 +3686,8 @@ export class ExpressRouter {
                 if (options?.hooks?.beforeUpdate) {
                     data = await options.hooks.beforeUpdate(data, req);
                 }
+
+                
 
                 const result = await client[modelName].update({
                     where: { [primaryKey]: parsedIdentifier },

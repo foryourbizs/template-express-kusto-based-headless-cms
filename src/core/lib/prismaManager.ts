@@ -1026,7 +1026,64 @@ export class PrismaManager implements PrismaManagerWrapOverloads, PrismaManagerC
 				return this.getWrap(databaseName);
 			};
 		}
-	}  /**
+	}
+
+	/**
+	 * Force refresh a specific database client
+	 * Useful when schema changes or client is out of sync
+	 */
+	public async forceRefreshClient(databaseName: string): Promise<void> {
+		console.log(`🔄 Force refreshing client for database: ${databaseName}`);
+		
+		// Disconnect existing client
+		const existingClient = this.databases.get(databaseName);
+		if (existingClient && typeof existingClient.$disconnect === 'function') {
+			try {
+				await existingClient.$disconnect();
+			} catch (error) {
+				console.warn(`⚠️ Error disconnecting existing client: ${error}`);
+			}
+		}
+
+		// Clear from cache
+		this.databases.delete(databaseName);
+		this.connectionStates.delete(databaseName);
+		this.reconnectionAttempts.delete(databaseName);
+
+		// Clear Node.js module cache for the client
+		const config = this.configs.get(databaseName);
+		if (config) {
+			const clientPath = path.join(process.cwd(), 'src', 'app', 'db', databaseName, 'client');
+			
+			// Clear all cached modules related to this client
+			Object.keys(require.cache).forEach(key => {
+				if (key.includes(clientPath)) {
+					delete require.cache[key];
+				}
+			});
+		}
+
+		// Recreate the client
+		await this.recreateClient(databaseName);
+		
+		console.log(`✅ Client refreshed for database: ${databaseName}`);
+	}
+
+	/**
+	 * Force refresh all database clients
+	 */
+	public async forceRefreshAllClients(): Promise<void> {
+		console.log('🔄 Force refreshing all database clients...');
+		
+		const databases = Array.from(this.databases.keys());
+		for (const dbName of databases) {
+			await this.forceRefreshClient(dbName);
+		}
+		
+		console.log('✅ All clients refreshed');
+	}
+
+  /**
    * Dynamically extend the DatabaseClientMap interface with the actual client type
    */
 	private extendDatabaseClientMap(databaseName: string, ClientType: any): void {

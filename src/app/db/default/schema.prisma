@@ -751,6 +751,10 @@ model ObjectStorages {
   bucketName String @db.VarChar(100) // 기본 버킷/컨테이너 이름
   region     String @default("auto") @db.VarChar(50) // 스토리지 서비스 리전
 
+  // === 인증 정보 ===
+  accessKey String @db.VarChar(255) // 스토리지 액세스 키 (암호화 저장 권장)
+  secretKey String @db.VarChar(500) // 스토리지 시크릿 키 (암호화 저장 필수)
+
   // === 상태 관리 ===
   isDefault Boolean @default(false) // 기본 스토리지 여부
   isActive  Boolean @default(true) // 스토리지 활성화 상태

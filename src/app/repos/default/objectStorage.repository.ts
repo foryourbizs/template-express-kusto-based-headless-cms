@@ -108,6 +108,8 @@ export default class ObjectStoragesRepository extends BaseRepository<'default'> 
         baseUrl: string;
         bucketName: string;
         region?: string;
+        accessKey: string;
+        secretKey: string;
         isDefault?: boolean;
         isActive?: boolean;
         metadata?: any;
@@ -120,6 +122,8 @@ export default class ObjectStoragesRepository extends BaseRepository<'default'> 
                 baseUrl: data.baseUrl,
                 bucketName: data.bucketName,
                 region: data.region || 'auto',
+                accessKey: data.accessKey,
+                secretKey: data.secretKey,
                 isDefault: data.isDefault || false,
                 isActive: data.isActive !== undefined ? data.isActive : true,
                 metadata: data.metadata,
@@ -140,6 +144,8 @@ export default class ObjectStoragesRepository extends BaseRepository<'default'> 
         baseUrl?: string;
         bucketName?: string;
         region?: string;
+        accessKey?: string;
+        secretKey?: string;
         isDefault?: boolean;
         isActive?: boolean;
         metadata?: any;
@@ -153,6 +159,8 @@ export default class ObjectStoragesRepository extends BaseRepository<'default'> 
                 ...(data.baseUrl !== undefined && { baseUrl: data.baseUrl }),
                 ...(data.bucketName !== undefined && { bucketName: data.bucketName }),
                 ...(data.region !== undefined && { region: data.region }),
+                ...(data.accessKey !== undefined && { accessKey: data.accessKey }),
+                ...(data.secretKey !== undefined && { secretKey: data.secretKey }),
                 ...(data.isDefault !== undefined && { isDefault: data.isDefault }),
                 ...(data.isActive !== undefined && { isActive: data.isActive }),
                 ...(data.metadata !== undefined && { metadata: data.metadata }),

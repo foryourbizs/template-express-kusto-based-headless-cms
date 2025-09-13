@@ -95,7 +95,15 @@ router.DELETE_SLUG_VALIDATED(
         }
 
         // 3. R2에서 실제 파일 삭제
-        const deleteSuccess = await injected.cloudflareR2.deleteFile(fileRecord.filePath);
+        const storageConfig = {
+            baseUrl: storage.baseUrl,
+            bucketName: storage.bucketName,
+            region: storage.region,
+            accessKey: storage.accessKey,
+            secretKey: storage.secretKey
+        };
+        
+        const deleteSuccess = await injected.cloudflareR2.deleteFile(fileRecord.filePath, storageConfig);
         
         // 4. 데이터베이스에서 소프트 삭제 (R2 삭제 실패해도 진행)
         const updatedFile = await fileRepo.softDeleteFile(fileUuid);

@@ -3,72 +3,66 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { Readable } from 'stream';
 import { log } from '@ext/winston'
 
-
-const config = {
-    ACCESS_ID: process.env.CLOUDFLARE_ACCESS_ID || '',
-    SECRET_ACCESS_KEY: process.env.CLOUDFLARE_SECRET_ACCESS_KEY || '',
-    R2_API: process.env.CLOUDFLARE_R2_API || '',
-    R2_BUCKET: process.env.CLOUDFLARE_R2_BUCKET || ''
-};
-
-// 설정 검증
-const validateConfig = () => {
-    const missing = [];
-    if (!config.ACCESS_ID) missing.push('CLOUDFLARE_ACCESS_ID');
-    if (!config.SECRET_ACCESS_KEY) missing.push('SECRET_ACCESS_KEY');
-    if (!config.R2_API) missing.push('CLOUDFLARE_R2_API');
-    if (!config.R2_BUCKET) missing.push('CLOUDFLARE_R2_BUCKET');
-    
-    if (missing.length > 0) {
-        throw new Error(`Cloudflare R2 설정이 누락되었습니다: ${missing.join(', ')}`);
-    }
-};
-
-// 설정 검증 실행
-try {
-    validateConfig();
-} catch (error) {
-    log.Error('Cloudflare R2 설정 오류:', error);
+// 저장소 설정 타입 정의
+export interface StorageConfig {
+    baseUrl: string;
+    bucketName: string;
+    region: string;
+    accessKey: string;
+    secretKey: string;
 }
 
-
-// R2 접속 설정
-const s3 = new S3Client({
-  region: "auto", // R2는 특정 region 없음
-  endpoint: config.R2_API, // R2 endpoint
-  credentials: {
-    accessKeyId: config.ACCESS_ID,
-    secretAccessKey: config.SECRET_ACCESS_KEY,
-  },
-});
-
-
 export default class CloudflareR2Module {
+    // S3Client 인스턴스 캐싱을 위한 Map
+    private static clientCache = new Map<string, S3Client>();
 
     /**
-     * 동적 S3 클라이언트 생성
-     * @param storageConfig - 저장소 설정 정보
+     * 동적 S3 클라이언트 생성 (캐싱 지원)
+     * @param storageConfig - 저장소 설정 정보 (필수)
      * @returns S3Client 인스턴스
      */
-    private createS3Client(storageConfig?: {
-        baseUrl: string;
-        region: string;
-        accessKey: string;
-        secretKey: string;
-    }): S3Client {
-        if (storageConfig) {
-            return new S3Client({
-                region: storageConfig.region || "auto",
-                endpoint: storageConfig.baseUrl,
-                credentials: {
-                    accessKeyId: storageConfig.accessKey,
-                    secretAccessKey: storageConfig.secretKey,
-                },
-            });
+    private createS3Client(storageConfig: StorageConfig): S3Client {
+        // 캐시 키 생성 (보안을 위해 해시 사용)
+        const cacheKey = `${storageConfig.baseUrl}-${storageConfig.region}-${storageConfig.accessKey}`;
+        
+        // 캐시에서 기존 클라이언트 확인
+        if (CloudflareR2Module.clientCache.has(cacheKey)) {
+            return CloudflareR2Module.clientCache.get(cacheKey)!;
         }
         
-        // 기본 설정 사용
-        return s3;
+        // 새 클라이언트 생성 및 캐시에 저장
+        const newClient = new S3Client({
+            region: storageConfig.region || "auto",
+            endpoint: storageConfig.baseUrl,
+            credentials: {
+                accessKeyId: storageConfig.accessKey,
+                secretAccessKey: storageConfig.secretKey,
+            },
+        });
+        
+        CloudflareR2Module.clientCache.set(cacheKey, newClient);
+        return newClient;
+    }
+
+    /**
+     * 캐시된 클라이언트 정리 (필요시 호출)
+     * @param storageConfig - 정리할 저장소 설정 (미제공시 전체 캐시 정리)
+     */
+    public static clearClientCache(storageConfig?: StorageConfig): void {
+        if (storageConfig) {
+            const cacheKey = `${storageConfig.baseUrl}-${storageConfig.region}-${storageConfig.accessKey}`;
+            const client = CloudflareR2Module.clientCache.get(cacheKey);
+            if (client) {
+                client.destroy?.(); // 연결 정리
+                CloudflareR2Module.clientCache.delete(cacheKey);
+            }
+        } else {
+            // 전체 캐시 정리
+            CloudflareR2Module.clientCache.forEach(client => {
+                client.destroy?.(); // 연결 정리
+            });
+            CloudflareR2Module.clientCache.clear();
+        }
     }
 
     /**
@@ -76,27 +70,20 @@ export default class CloudflareR2Module {
      * @param key - S3 객체 키 (파일명/경로)
      * @param body - 업로드할 데이터 (Buffer, Uint8Array, string, 또는 Readable stream)
      * @param contentType - 파일의 MIME 타입 (선택사항)
-     * @param storageConfig - 저장소 설정 정보 (선택사항, 미제공시 기본 설정 사용)
+     * @param storageConfig - 저장소 설정 정보 (필수)
      * @returns Promise<boolean> - 업로드 성공 여부
      */
     public async uploadFile(
         key: string, 
         body: Buffer | Uint8Array | string | Readable, 
-        contentType?: string,
-        storageConfig?: {
-            baseUrl: string;
-            bucketName: string;
-            region: string;
-            accessKey: string;
-            secretKey: string;
-        }
+        contentType: string | undefined,
+        storageConfig: StorageConfig
     ): Promise<boolean> {
         try {
             const s3Client = this.createS3Client(storageConfig);
-            const bucket = storageConfig?.bucketName || config.R2_BUCKET;
 
             const command = new PutObjectCommand({
-                Bucket: bucket,
+                Bucket: storageConfig.bucketName,
                 Key: key,
                 Body: body,
                 ContentType: contentType
@@ -115,27 +102,20 @@ export default class CloudflareR2Module {
      * @param key - S3 객체 키 (파일명/경로)
      * @param expiresIn - URL 만료 시간 (초 단위, 기본값: 3600초 = 1시간)
      * @param contentType - 업로드할 파일의 MIME 타입 (선택사항)
-     * @param storageConfig - 저장소 설정 정보 (선택사항, 미제공시 기본 설정 사용)
+     * @param storageConfig - 저장소 설정 정보 (필수)
      * @returns Promise<string | null> - presigned URL 또는 null (실패시)
      */
     public async generateUploadPresignedUrl(
         key: string,
         expiresIn: number = 3600,
-        contentType?: string,
-        storageConfig?: {
-            baseUrl: string;
-            bucketName: string;
-            region: string;
-            accessKey: string;
-            secretKey: string;
-        }
+        contentType: string | undefined,
+        storageConfig: StorageConfig
     ): Promise<string | null> {
         try {
             const s3Client = this.createS3Client(storageConfig);
-            const bucket = storageConfig?.bucketName || config.R2_BUCKET;
 
             const command = new PutObjectCommand({
-                Bucket: bucket,
+                Bucket: storageConfig.bucketName,
                 Key: key,
                 ContentType: contentType
             });
@@ -152,21 +132,23 @@ export default class CloudflareR2Module {
      * 다운로드용 presigned URL을 생성합니다.
      * @param key - S3 객체 키 (파일명/경로)
      * @param expiresIn - URL 만료 시간 (초 단위, 기본값: 3600초 = 1시간)
-     * @param bucket - 다운로드할 버킷명 (기본값: 환경변수에서 설정된 버킷)
+     * @param storageConfig - 저장소 설정 정보 (필수)
      * @returns Promise<string | null> - presigned URL 또는 null (실패시)
      */
     public async generateDownloadPresignedUrl(
         key: string,
         expiresIn: number = 3600,
-        bucket: string = config.R2_BUCKET
+        storageConfig: StorageConfig
     ): Promise<string | null> {
         try {
+            const s3Client = this.createS3Client(storageConfig);
+
             const command = new GetObjectCommand({
-                Bucket: bucket,
+                Bucket: storageConfig.bucketName,
                 Key: key
             });
 
-            const presignedUrl = await getSignedUrl(s3, command, { expiresIn });
+            const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn });
             return presignedUrl;
         } catch (error) {
             log.Error('Presigned URL 생성 실패 (다운로드):', error);
@@ -179,17 +161,19 @@ export default class CloudflareR2Module {
     /**
      * R2에서 파일을 다운로드합니다.
      * @param key - S3 객체 키 (파일명/경로)
-     * @param bucket - 다운로드할 버킷명 (기본값: 환경변수에서 설정된 버킷)
+     * @param storageConfig - 저장소 설정 정보 (필수)
      * @returns Promise<Readable | null> - 파일 스트림 또는 null (실패시)
      */
-    public async downloadFile(key: string, bucket: string = config.R2_BUCKET): Promise<Readable | null> {
+    public async downloadFile(key: string, storageConfig: StorageConfig): Promise<Readable | null> {
         try {
+            const s3Client = this.createS3Client(storageConfig);
+
             const command = new GetObjectCommand({
-                Bucket: bucket,
+                Bucket: storageConfig.bucketName,
                 Key: key
             });
 
-            const response = await s3.send(command);
+            const response = await s3Client.send(command);
             return response.Body as Readable;
         } catch (error) {
             log.Error('R2 다운로드 실패:', error);
@@ -200,17 +184,19 @@ export default class CloudflareR2Module {
     /**
      * R2에서 단일 파일을 삭제합니다.
      * @param key - S3 객체 키 (파일명/경로)
-     * @param bucket - 삭제할 버킷명 (기본값: 환경변수에서 설정된 버킷)
+     * @param storageConfig - 저장소 설정 정보 (필수)
      * @returns Promise<boolean> - 삭제 성공 여부
      */
-    public async deleteFile(key: string, bucket: string = config.R2_BUCKET): Promise<boolean> {
+    public async deleteFile(key: string, storageConfig: StorageConfig): Promise<boolean> {
         try {
+            const s3Client = this.createS3Client(storageConfig);
+
             const command = new DeleteObjectCommand({
-                Bucket: bucket,
+                Bucket: storageConfig.bucketName,
                 Key: key
             });
 
-            await s3.send(command);
+            await s3Client.send(command);
             log.Info(`R2 파일 삭제 성공: ${key}`);
             return true;
         } catch (error) {
@@ -222,12 +208,12 @@ export default class CloudflareR2Module {
     /**
      * R2에서 여러 파일을 한 번에 삭제합니다.
      * @param keys - 삭제할 S3 객체 키들의 배열
-     * @param bucket - 삭제할 버킷명 (기본값: 환경변수에서 설정된 버킷)
+     * @param storageConfig - 저장소 설정 정보 (필수)
      * @returns Promise<{succeeded: string[], failed: {key: string, error: string}[]}> - 삭제 결과
      */
     public async deleteMultipleFiles(
         keys: string[], 
-        bucket: string = config.R2_BUCKET
+        storageConfig: StorageConfig
     ): Promise<{succeeded: string[], failed: {key: string, error: string}[]}> {
         try {
             if (keys.length === 0) {
@@ -239,18 +225,20 @@ export default class CloudflareR2Module {
                 throw new Error('한 번에 삭제할 수 있는 파일은 최대 1000개입니다.');
             }
 
+            const s3Client = this.createS3Client(storageConfig);
+
             const command = new DeleteObjectsCommand({
-                Bucket: bucket,
+                Bucket: storageConfig.bucketName,
                 Delete: {
                     Objects: keys.map(key => ({ Key: key })),
                     Quiet: false // 삭제 결과를 상세히 받기 위해 false 설정
                 }
             });
 
-            const response = await s3.send(command);
+            const response = await s3Client.send(command);
             
-            const succeeded = response.Deleted?.map(obj => obj.Key || '') || [];
-            const failed = response.Errors?.map(err => ({
+            const succeeded = response.Deleted?.map((obj: any) => obj.Key || '') || [];
+            const failed = response.Errors?.map((err: any) => ({
                 key: err.Key || '',
                 error: err.Message || 'Unknown error'
             })) || [];
@@ -275,12 +263,12 @@ export default class CloudflareR2Module {
     /**
      * R2에서 특정 경로(prefix)의 모든 파일을 삭제합니다.
      * @param prefix - 삭제할 파일들의 경로 접두사 (예: "uploads/2025/09/")
-     * @param bucket - 삭제할 버킷명 (기본값: 환경변수에서 설정된 버킷)
+     * @param storageConfig - 저장소 설정 정보 (필수)
      * @returns Promise<{count: number, succeeded: string[], failed: {key: string, error: string}[]}> - 삭제 결과
      */
     public async deleteFilesByPrefix(
         prefix: string, 
-        bucket: string = config.R2_BUCKET
+        storageConfig: StorageConfig
     ): Promise<{count: number, succeeded: string[], failed: {key: string, error: string}[]}> {
         try {
             // 먼저 해당 prefix로 시작하는 모든 파일 목록을 가져와야 함
@@ -305,18 +293,20 @@ export default class CloudflareR2Module {
     /**
      * R2에서 파일이 존재하는지 확인합니다.
      * @param key - S3 객체 키 (파일명/경로)
-     * @param bucket - 확인할 버킷명 (기본값: 환경변수에서 설정된 버킷)
+     * @param storageConfig - 저장소 설정 정보 (필수)
      * @returns Promise<boolean> - 파일 존재 여부
      */
-    public async fileExists(key: string, bucket: string = config.R2_BUCKET): Promise<boolean> {
+    public async fileExists(key: string, storageConfig: StorageConfig): Promise<boolean> {
         try {
+            const s3Client = this.createS3Client(storageConfig);
+
             const command = new GetObjectCommand({
-                Bucket: bucket,
+                Bucket: storageConfig.bucketName,
                 Key: key
             });
 
             // 실제로 파일을 다운로드하지 않고 헤더만 확인
-            await s3.send(command);
+            await s3Client.send(command);
             return true;
         } catch (error: any) {
             // NoSuchKey 에러는 파일이 없다는 의미이므로 false 반환
@@ -333,22 +323,24 @@ export default class CloudflareR2Module {
     /**
      * 파일의 메타데이터 정보를 가져옵니다.
      * @param key - S3 객체 키 (파일명/경로)
-     * @param bucket - 확인할 버킷명 (기본값: 환경변수에서 설정된 버킷)
+     * @param storageConfig - 저장소 설정 정보 (필수)
      * @returns Promise<object | null> - 파일 메타데이터 (크기, 수정일 등) 또는 null
      */
-    public async getFileMetadata(key: string, bucket: string = config.R2_BUCKET): Promise<{
+    public async getFileMetadata(key: string, storageConfig: StorageConfig): Promise<{
         contentLength?: number;
         contentType?: string;
         lastModified?: Date;
         etag?: string;
     } | null> {
         try {
+            const s3Client = this.createS3Client(storageConfig);
+
             const command = new HeadObjectCommand({
-                Bucket: bucket,
+                Bucket: storageConfig.bucketName,
                 Key: key
             });
 
-            const response = await s3.send(command);
+            const response = await s3Client.send(command);
             
             return {
                 contentLength: response.ContentLength,
@@ -373,18 +365,20 @@ export default class CloudflareR2Module {
      * @param key - S3 객체 키 (파일명/경로)
      * @param start - 시작 바이트 위치
      * @param end - 끝 바이트 위치
-     * @param bucket - 다운로드할 버킷명 (기본값: 환경변수에서 설정된 버킷)
+     * @param storageConfig - 저장소 설정 정보 (필수)
      * @returns Promise<Readable | null> - 파일 스트림 또는 null
      */
-    public async downloadFileRange(key: string, start: number, end: number, bucket: string = config.R2_BUCKET): Promise<Readable | null> {
+    public async downloadFileRange(key: string, start: number, end: number, storageConfig: StorageConfig): Promise<Readable | null> {
         try {
+            const s3Client = this.createS3Client(storageConfig);
+
             const command = new GetObjectCommand({
-                Bucket: bucket,
+                Bucket: storageConfig.bucketName,
                 Key: key,
                 Range: `bytes=${start}-${end}`
             });
 
-            const response = await s3.send(command);
+            const response = await s3Client.send(command);
             
             if (response.Body instanceof Readable) {
                 return response.Body;

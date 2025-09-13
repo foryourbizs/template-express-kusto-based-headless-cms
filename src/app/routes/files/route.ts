@@ -34,6 +34,7 @@ router
         const storageRepo = repo.getRepository('defaultObjectStorage');
         
         const fileRecord = await fileRepo.getFileByFilename(fileName);
+
         if (!fileRecord) {
             res.status(404);
             return res.json({

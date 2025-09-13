@@ -357,10 +357,7 @@ export default class CloudflareR2Module {
             
 
             // 다른 에러는 로깅하고 null 반환
-            log.Error('R2 파일 메타데이터 가져오기 실패:', {
-                key,
-                error
-            });
+            log.Error('R2 파일 메타데이터 가져오기 실패:', error);
             return null;
         }
     }

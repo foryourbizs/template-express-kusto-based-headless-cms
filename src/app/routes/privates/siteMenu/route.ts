@@ -4,7 +4,8 @@ const router = new ExpressRouter();
 
 router
 .CRUD('default', 'siteMenu', {
-    primaryKey: 'uuid'
+    primaryKey: 'uuid',
+    includeMerge: true,
 })
 
 export default router.build();

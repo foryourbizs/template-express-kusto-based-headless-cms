@@ -22,9 +22,7 @@
     "db": "ts-node ./src/core/scripts/kusto-db-cli.ts",
     "updater:generate": "ts-node ./updater/generate.ts",
     "updater:check": "ts-node ./updater/compare.ts",
-    "updater:update": "ts-node ./updater/update.ts",
-    "install-cli": "tsc -p src/core/scripts/tsconfig.cli.json && npm install . && npm link",
-    "uninstall-cli": "npm uninstall -g kusto-server"
+    "updater:update": "ts-node ./updater/update.ts"
   },
   "author": "rkdmf0000@gmail.com",
   "license": "ISC",

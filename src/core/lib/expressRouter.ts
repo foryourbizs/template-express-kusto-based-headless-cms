@@ -31,6 +31,57 @@ type ExtractModelNames<T> = T extends { [K in keyof T]: any }
   ? Exclude<keyof T, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends' | '$executeRaw' | '$executeRawUnsafe' | '$queryRaw' | '$queryRawUnsafe'> & string
   : never;
 
+/**
+ * Extract model type from Prisma client
+ * 특정 데이터베이스와 모델명에 대한 실제 모델 타입을 추출
+ */
+type ExtractModelType<
+  TDatabase extends DatabaseNamesUnion,
+  TModel extends string
+> = TDatabase extends keyof DatabaseClientMap
+  ? DatabaseClientMap[TDatabase] extends { [K in TModel]: { create: (args: { data: infer TCreate }) => any } }
+    ? TCreate
+    : any
+  : any;
+
+/**
+ * Extract model result type from Prisma client
+ * 생성/수정 후 반환되는 모델 타입을 추출
+ */
+type ExtractModelResultType<
+  TDatabase extends DatabaseNamesUnion,
+  TModel extends string
+> = TDatabase extends keyof DatabaseClientMap
+  ? DatabaseClientMap[TDatabase] extends { [K in TModel]: { create: (...args: any[]) => Promise<infer TResult> } }
+    ? TResult
+    : any
+  : any;
+
+/**
+ * Extract findMany args type from Prisma client
+ * INDEX 훅에서 사용할 쿼리 옵션 타입을 추출
+ */
+type ExtractFindManyArgsType<
+  TDatabase extends DatabaseNamesUnion,
+  TModel extends string
+> = TDatabase extends keyof DatabaseClientMap
+  ? DatabaseClientMap[TDatabase] extends { [K in TModel]: { findMany: (args?: infer TArgs) => any } }
+    ? TArgs
+    : any
+  : any;
+
+/**
+ * Extract findUnique args type from Prisma client
+ * SHOW 훅에서 사용할 쿼리 옵션 타입을 추출
+ */
+type ExtractFindUniqueArgsType<
+  TDatabase extends DatabaseNamesUnion,
+  TModel extends string
+> = TDatabase extends keyof DatabaseClientMap
+  ? DatabaseClientMap[TDatabase] extends { [K in TModel]: { findUnique: (args: infer TArgs) => any } }
+    ? TArgs
+    : any
+  : any;
   
 /**
  * Get available model names for a specific database
@@ -2231,9 +2282,12 @@ export class ExpressRouter {
      * @param modelName 대상 모델 이름 (복수형 변환을 위해 단수형 사용)
      * @param options CRUD 옵션 설정
      */
-    public CRUD<T extends DatabaseNamesUnion>(
+    public CRUD<
+        T extends DatabaseNamesUnion,
+        M extends ModelNamesFor<T> = ModelNamesFor<T>
+    >(
         databaseName: T, 
-        modelName: ModelNamesFor<T>,
+        modelName: M,
         options?: {
 
             /** CRUD 액션 생성 및 설정 */
@@ -2267,12 +2321,12 @@ export class ExpressRouter {
 
             /** 미들웨어 */
             middleware?: {
-                index?: HandlerFunction[];
-                show?: HandlerFunction[];
-                create?: HandlerFunction[];
-                update?: HandlerFunction[];
-                destroy?: HandlerFunction[];
-                recover?: HandlerFunction[];
+                index?: MiddlewareHandlerFunction[];
+                show?: MiddlewareHandlerFunction[];
+                create?: MiddlewareHandlerFunction[];
+                update?: MiddlewareHandlerFunction[];
+                destroy?: MiddlewareHandlerFunction[];
+                recover?: MiddlewareHandlerFunction[];
             };
 
             /** 요청 검증 설정 */
@@ -2282,19 +2336,28 @@ export class ExpressRouter {
                 recover?: RequestConfig;
             };
 
-            /** 응답 검증 설정 */
+            /** 훅 설정 */
             hooks?: {
-                beforeCreate?: (data: any, req: Request) => Promise<any> | any;
-                afterCreate?: (result: any, req: Request) => Promise<any> | any;
+                // 조회용 훅 (쿼리 조건 가공용)
+                beforeIndex?: (queryOptions: ExtractFindManyArgsType<T, M>, req: Request) => Promise<ExtractFindManyArgsType<T, M>> | ExtractFindManyArgsType<T, M>;
+                
+                beforeShow?: (findOptions: ExtractFindUniqueArgsType<T, M>, req: Request) => Promise<ExtractFindUniqueArgsType<T, M>> | ExtractFindUniqueArgsType<T, M>;
 
-                beforeUpdate?: (data: any, req: Request) => Promise<any> | any;
-                afterUpdate?: (result: any, req: Request) => Promise<any> | any
+                // 생성용 훅
+                beforeCreate?: (data: ExtractModelType<T, M>, req: Request) => Promise<ExtractModelType<T, M>> | ExtractModelType<T, M>;
+                afterCreate?: (result: ExtractModelResultType<T, M>, req: Request) => Promise<ExtractModelResultType<T, M>> | ExtractModelResultType<T, M>;
 
+                // 수정용 훅
+                beforeUpdate?: (data: Partial<ExtractModelType<T, M>>, req: Request) => Promise<Partial<ExtractModelType<T, M>>> | Partial<ExtractModelType<T, M>>;
+                afterUpdate?: (result: ExtractModelResultType<T, M>, req: Request) => Promise<ExtractModelResultType<T, M>> | ExtractModelResultType<T, M>;
+
+                // 삭제용 훅
                 beforeDestroy?: (id: any, req: Request) => Promise<void> | void;
                 afterDestroy?: (id: any, req: Request) => Promise<void> | void;
 
+                // 복구용 훅
                 beforeRecover?: (id: any, req: Request) => Promise<void> | void;
-                afterRecover?: (result: any, req: Request) => Promise<void> | void;
+                afterRecover?: (result: ExtractModelResultType<T, M>, req: Request) => Promise<ExtractModelResultType<T, M>> | ExtractModelResultType<T, M>;
             };
         }
     ): ExpressRouter {
@@ -2509,8 +2572,8 @@ export class ExpressRouter {
                 res.setHeader('Content-Type', 'application/vnd.api+json');
                 res.setHeader('Vary', 'Accept');
 
-                // 쿼리 ?�라미터 ?�싱
-                const queryParams = CrudQueryParser.parseQuery(req);
+                // 쿼리 파라미터 파싱
+                const queryParams = CrudQueryParser.parseQuery(req, modelName, this.schemaAnalyzer);
                 
                 // 페이지네이션 방식 검증 - 반드시 지정되어야 함
                 if (!queryParams.page) {
@@ -2548,8 +2611,27 @@ export class ExpressRouter {
                     return res.status(400).json(errorResponse);
                 }
                 
-                // Prisma 쿼리 ?�션 빌드
-                const findManyOptions = PrismaQueryBuilder.buildFindManyOptions(queryParams);
+                // Prisma 쿼리 옵션 빌드
+                let findManyOptions = PrismaQueryBuilder.buildFindManyOptions(queryParams);
+                
+                // beforeIndex 훅 실행 (쿼리 옵션 가공)
+                if (options?.hooks?.beforeIndex) {
+                    try {
+                        const hookResult = await options.hooks.beforeIndex(findManyOptions, req);
+                        if (hookResult) {
+                            findManyOptions = hookResult;
+                        }
+                    } catch (hookError) {
+                        const errorResponse = this.formatJsonApiError(
+                            hookError instanceof Error ? hookError : new Error('Hook execution failed'),
+                            ERROR_CODES.INTERNAL_SERVER_ERROR,
+                            500,
+                            req.path,
+                            req.method
+                        );
+                        return res.status(500).json(errorResponse);
+                    }
+                }
                 
                 // Soft Delete 필터 추가 (기존 where 조건과 병합)
                 if (isSoftDelete) {
@@ -2578,6 +2660,8 @@ export class ExpressRouter {
                 delete totalCountOptions.take;
                 delete totalCountOptions.cursor;
                  
+                // console.log(modelName, Object.keys(client))
+
                 const [items, total] = await Promise.all([
                     client[modelName].findMany(findManyOptions),
                     client[modelName].count({ where: totalCountOptions.where })
@@ -2680,7 +2764,8 @@ export class ExpressRouter {
 
         // 미들웨어 등록
         if (middlewares.length > 0) {
-            this.router.get('/', ...middlewares, this.wrapHandler(handler));
+            const wrappedMiddlewares = middlewares.map((mw: MiddlewareHandlerFunction) => this.wrapMiddleware(mw));
+            this.router.get('/', ...wrappedMiddlewares, this.wrapHandler(handler));
         } else {
             this.router.get('/', this.wrapHandler(handler));
         }
@@ -2749,23 +2834,45 @@ export class ExpressRouter {
                 if (!success) return; // ?�러 ?�답?� ?��? ?�퍼?�서 처리??
                 
                 // 쿼리 파라미터에서 include 파싱
-                const queryParams = CrudQueryParser.parseQuery(req);
+                const queryParams = CrudQueryParser.parseQuery(req, modelName, this.schemaAnalyzer);
                 const includeOptions = queryParams.include 
                     ? PrismaQueryBuilder['buildIncludeOptions'](queryParams.include)
                     : undefined;
 
                 // Soft Delete 필터 추가 (include_deleted가 true가 아닌 경우)
                 const includeDeleted = req.query.include_deleted === 'true';
-                const whereClause: any = { [primaryKey]: parsedIdentifier };
+                let whereClause: any = { [primaryKey]: parsedIdentifier };
                 
                 if (isSoftDelete && !includeDeleted) {
                     whereClause[softDeleteField] = null;
                 }
 
-                const item = await client[modelName].findFirst({
+                // Prisma findFirst 옵션 구성
+                let findOptions: any = {
                     where: whereClause,
                     ...(includeOptions && { include: includeOptions })
-                });
+                };
+
+                // beforeShow 훅 실행 (조회 옵션 가공)
+                if (options?.hooks?.beforeShow) {
+                    try {
+                        const hookResult = await options.hooks.beforeShow(findOptions, req);
+                        if (hookResult) {
+                            findOptions = hookResult;
+                        }
+                    } catch (hookError) {
+                        const errorResponse = this.formatJsonApiError(
+                            hookError instanceof Error ? hookError : new Error('Hook execution failed'),
+                            ERROR_CODES.INTERNAL_SERVER_ERROR,
+                            500,
+                            req.path,
+                            req.method
+                        );
+                        return res.status(500).json(errorResponse);
+                    }
+                }
+
+                const item = await client[modelName].findFirst(findOptions);
 
                 if (!item) {
                     // Soft delete된 데이터 확인 (include_deleted=false 상태에서)
@@ -2857,7 +2964,8 @@ export class ExpressRouter {
         // 미들웨어 등록 - 정적 경로 사용
         const routePath = `/:${primaryKey}`;
         if (middlewares.length > 0) {
-            this.router.get(routePath, ...middlewares, this.wrapHandler(handler));
+            const wrappedMiddlewares = middlewares.map((mw: MiddlewareHandlerFunction) => this.wrapMiddleware(mw));
+            this.router.get(routePath, ...wrappedMiddlewares, this.wrapHandler(handler));
         } else {
             this.router.get(routePath, this.wrapHandler(handler));
         }
@@ -3047,7 +3155,8 @@ export class ExpressRouter {
         } else {
             // ?�반 ?�들??
             if (middlewares.length > 0) {
-                this.router.post('/', ...middlewares, this.wrapHandler(handler));
+                const wrappedMiddlewares = middlewares.map((mw: MiddlewareHandlerFunction) => this.wrapMiddleware(mw));
+                this.router.post('/', ...wrappedMiddlewares, this.wrapHandler(handler));
             } else {
                 this.router.post('/', this.wrapHandler(handler));
             }
@@ -3602,9 +3711,6 @@ export class ExpressRouter {
         
         const handler: HandlerFunction = async (req, res, injected, repo, db) => {
 
-            console.log(client);
-
-
             try {
                 // JSON:API Content-Type ?�더 ?�정
                 res.setHeader('Content-Type', 'application/vnd.api+json');
@@ -3754,7 +3860,8 @@ export class ExpressRouter {
                 }
             } else {
                 if (middlewares.length > 0) {
-                    this.router[method](routePath, ...middlewares, this.wrapHandler(handler));
+                    const wrappedMiddlewares = middlewares.map((mw: MiddlewareHandlerFunction) => this.wrapMiddleware(mw));
+                    this.router[method](routePath, ...wrappedMiddlewares, this.wrapHandler(handler));
                 } else {
                     this.router[method](routePath, this.wrapHandler(handler));
                 }
@@ -3936,7 +4043,8 @@ export class ExpressRouter {
         // 미들?�어 ?�록
         const routePath = `/:${primaryKey}`;
         if (middlewares.length > 0) {
-            this.router.delete(routePath, ...middlewares, this.wrapHandler(handler));
+            const wrappedMiddlewares = middlewares.map((mw: MiddlewareHandlerFunction) => this.wrapMiddleware(mw));
+            this.router.delete(routePath, ...wrappedMiddlewares, this.wrapHandler(handler));
         } else {
             this.router.delete(routePath, this.wrapHandler(handler));
         }
@@ -4100,9 +4208,10 @@ export class ExpressRouter {
                 this.router.post(routePath, ...validationMiddlewares);
             }
         } else {
-            // ?�반 ?�들??
+            // 일반 핸들러
             if (middlewares.length > 0) {
-                this.router.post(routePath, ...middlewares, this.wrapHandler(handler));
+                const wrappedMiddlewares = middlewares.map((mw: MiddlewareHandlerFunction) => this.wrapMiddleware(mw));
+                this.router.post(routePath, ...wrappedMiddlewares, this.wrapHandler(handler));
             } else {
                 this.router.post(routePath, this.wrapHandler(handler));
             }
@@ -4513,8 +4622,8 @@ export class ExpressRouter {
 
                 const relationName = req.params.relationName;
                 
-                // 쿼리 ?�라미터 ?�싱 (include, fields, sort, pagination 지??
-                const queryParams = CrudQueryParser.parseQuery(req);
+                // 쿼리 파라미터 파싱 (include, fields, sort, pagination 지원)
+                const queryParams = CrudQueryParser.parseQuery(req, modelName, this.schemaAnalyzer);
                 
                 // 기본 리소??조회
                 const item = await client[modelName].findUnique({
@@ -4840,7 +4949,7 @@ export class ExpressRouter {
                 if (!success) return;
 
                 const relationName = req.params.relationName;
-                const queryParams = CrudQueryParser.parseQuery(req);
+                const queryParams = CrudQueryParser.parseQuery(req, modelName, this.schemaAnalyzer);
                 
                 // 기본 리소??조회
                 const item = await client[modelName].findUnique({

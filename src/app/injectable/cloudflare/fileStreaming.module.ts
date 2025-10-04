@@ -869,7 +869,7 @@ export default class FileStreamingModule {
             });
 
             if (DEBUG_FILE_STREAMING && lock.waitingRequests.length > 0) {
-                console.log(`� Notified ${lock.waitingRequests.length} waiting requests for: ${lockKey}`);
+                console.log(`Notified ${lock.waitingRequests.length} waiting requests for: ${lockKey}`);
             }
 
             // 일정 시간 후 락 정리 (결과 캐싱을 위해 잠시 유지)

@@ -1,6 +1,6 @@
 // generateDownloadPresignedUrl
 
-import { ExpressRouter } from '@lib/expressRouter';
+import { ExpressRouter } from 'kusto-framework-core';
 
 const router = new ExpressRouter();
 
@@ -30,8 +30,8 @@ router
 
     try {
         // 1. 데이터베이스에서 파일 정보 조회
-        const fileRepo = repo.getRepository('defaultFile');
-        const storageRepo = repo.getRepository('defaultObjectStorage');
+        const fileRepo = repo.defaultFile;
+        const storageRepo = repo.defaultObjectStorage;
         
         const fileRecord = await fileRepo.getFileByFilename(fileName);
 

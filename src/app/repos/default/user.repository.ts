@@ -1,4 +1,4 @@
-import { BaseRepository } from '@lib/baseRepository';
+import { BaseRepository } from 'kusto-framework-core';
 import { 
     UserBase, 
     UserAuth, 

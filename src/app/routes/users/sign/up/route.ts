@@ -1,4 +1,4 @@
-import { ExpressRouter } from '@lib/expressRouter';
+import { ExpressRouter } from 'kusto-framework-core';
 const router = new ExpressRouter();
 
 

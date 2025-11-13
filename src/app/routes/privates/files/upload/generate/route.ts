@@ -1,4 +1,4 @@
-import { ExpressRouter } from '@lib/expressRouter';
+import { ExpressRouter } from 'kusto-framework-core';
 const router = new ExpressRouter();
 
 
@@ -20,10 +20,12 @@ router.GET_VALIDATED({
 }, async (req, res, injected, repo, db) => {
     try {
         
+        
         const { key, contentType, expiresIn = 3600, storageUuid } = req.validatedData.query;
 
-        const fileRepo = repo.getRepository('defaultFile');
-        const storageRepo = repo.getRepository('defaultObjectStorage');
+        const fileRepo = repo.defaultFile;
+        const storageRepo = repo.defaultObjectStorage;
+
 
         // 저장소 선택 로직
         let r2Storage;

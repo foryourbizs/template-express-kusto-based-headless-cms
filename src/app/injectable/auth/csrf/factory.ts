@@ -1,5 +1,5 @@
 import { CSRFTokenStorage, StorageConfig } from './storage.interface';
-import { log } from '@/src/core/external/winston';
+import { log } from 'kusto-framework-core';
 
 /**
  * 싱글톤 패턴으로 저장소 인스턴스 관리

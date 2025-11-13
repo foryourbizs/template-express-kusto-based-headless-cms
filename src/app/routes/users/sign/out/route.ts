@@ -1,4 +1,4 @@
-import { ExpressRouter } from '@lib/expressRouter';
+import { ExpressRouter } from 'kusto-framework-core';
 const router = new ExpressRouter();
 
 
@@ -27,7 +27,7 @@ router
     async (req, res, injected, repo, db) => {
     
         const jwt = injected.authJwtJsonWebToken;                  
-        const userRepo = repo.getRepository('defaultUser');   
+        const userRepo = repo.defaultUser;
 
 
         try {

@@ -1,4 +1,4 @@
-import { ExpressRouter } from '@lib/expressRouter';
+import { ExpressRouter } from 'kusto-framework-core';
 import { diskStorage } from 'multer';
 import { v4 as uuidv4 } from 'uuid';
 import { readFile, unlink, mkdir } from 'fs/promises';
@@ -53,8 +53,8 @@ router.PUT_ARRAY_FILE(storage, 'files', async (req, res, injected, repo, db) => 
             });
         }
 
-        const fileRepo = repo.getRepository('defaultFile');
-        const storageRepo = repo.getRepository('defaultObjectStorage');
+        const fileRepo = repo.defaultFile;
+        const storageRepo = repo.defaultObjectStorage;
 
         // 저장소 선택 로직 (쿼리 파라미터 또는 기본 저장소 사용)
         const storageUuid = req.query.storageUuid as string;

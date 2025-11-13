@@ -1,5 +1,5 @@
 import { CSRFTokenStorage, CSRFTokenData, StorageConfig } from './storage.interface';
-import { log } from '@/src/core/external/winston';
+import { log } from 'kusto-framework-core';
 
 /**
  * CSRF 저장소 추상 베이스 클래스

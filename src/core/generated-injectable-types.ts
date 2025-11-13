@@ -30,31 +30,6 @@ type AuthRateLimiterDefaultMiddlewareType = ReturnType<typeof AuthRateLimiterDef
 type authJwtGuardRoleGuideMiddlewareParamsType = AuthJWTGuardRoleGuideAuthTryMiddlewareParamsType;
 type authRateLimiterOptionMiddlewareParamsType = AuthRateLimiterOptionRateLimiterOptionMiddlewareParamsType;
 
-// Injectable modules interface
-export interface Injectable {
-  authCsrfHelper: AuthCSRFHelperModuleType;
-  authCsrfMiddleware: AuthCSRFMiddlewareModuleType;
-  authJwtJsonWebToken: AuthJWTJsonWebTokenModuleType;
-  cloudflareFileStreaming: CloudflareFileStreamingModuleType;
-  cloudflareR2: CloudflareR2ModuleType;
-  constantDb: ConstantDBModuleType;
-}
-
-// Middleware interface
-export interface Middleware {
-  authCsrfReferrer: AuthCSRFReferrerMiddlewareType;
-  authJwtGuardCheck: AuthJWTGuardCheckMiddlewareType;
-  authJwtGuardNoLoginCheck: AuthJWTGuardNoLoginCheckMiddlewareType;
-  authJwtGuardRoleCheck: AuthJWTGuardRoleCheckMiddlewareType;
-  authRateLimiterDefault: AuthRateLimiterDefaultMiddlewareType;
-}
-
-// Middleware parameters interface
-export interface MiddlewareParams {
-  authJwtGuardRoleGuide: authJwtGuardRoleGuideMiddlewareParamsType;
-  authRateLimiterOption: authRateLimiterOptionMiddlewareParamsType;
-}
-
 // Module registry for dynamic loading
 export const MODULE_REGISTRY = {
   'authCsrfHelper': () => import('../app/injectable/auth/csrf/helper.module'),
@@ -80,6 +55,50 @@ export const MIDDLEWARE_PARAM_MAPPING = {
   'authRateLimiterDefault': 'authRateLimiterOption',
 } as const;
 
+/**
+ * Augment kusto-framework-core module with actual injectable types
+ */
+declare module 'kusto-framework-core' {
+  // Injectable modules interface
+  interface Injectable {
+  authCsrfHelper: AuthCSRFHelperModuleType;
+  authCsrfMiddleware: AuthCSRFMiddlewareModuleType;
+  authJwtJsonWebToken: AuthJWTJsonWebTokenModuleType;
+  cloudflareFileStreaming: CloudflareFileStreamingModuleType;
+  cloudflareR2: CloudflareR2ModuleType;
+  constantDb: ConstantDBModuleType;
+  }
+
+  // Middleware interface
+  interface Middleware {
+  authCsrfReferrer: AuthCSRFReferrerMiddlewareType;
+  authJwtGuardCheck: AuthJWTGuardCheckMiddlewareType;
+  authJwtGuardNoLoginCheck: AuthJWTGuardNoLoginCheckMiddlewareType;
+  authJwtGuardRoleCheck: AuthJWTGuardRoleCheckMiddlewareType;
+  authRateLimiterDefault: AuthRateLimiterDefaultMiddlewareType;
+  }
+
+  // Middleware parameters interface
+  interface MiddlewareParams {
+  authJwtGuardRoleGuide: authJwtGuardRoleGuideMiddlewareParamsType;
+  authRateLimiterOption: authRateLimiterOptionMiddlewareParamsType;
+  }
+  
+  // Middleware parameter mapping interface
+  interface MiddlewareParamMapping {
+    'authJwtGuardRoleCheck': 'authJwtGuardRoleGuide';
+    'authRateLimiterDefault': 'authRateLimiterOption';
+  }
+
+  // Augment KustoConfigurableTypes for type inference
+  interface KustoConfigurableTypes {
+    injectable: Injectable;
+    middleware: Middleware;
+    middlewareParams: MiddlewareParams;
+    middlewareParamMapping: MiddlewareParamMapping;
+  }
+}
+
 // Module names type
 export type ModuleName = keyof typeof MODULE_REGISTRY;
 
@@ -87,13 +106,13 @@ export type ModuleName = keyof typeof MODULE_REGISTRY;
 export type MiddlewareName = keyof typeof MIDDLEWARE_REGISTRY;
 
 // Middleware parameter names type
-export type MiddlewareParamName = keyof MiddlewareParams;
+export type MiddlewareParamName = keyof typeof MIDDLEWARE_PARAM_MAPPING;
 
 // Helper type for getting module type by name
-export type GetModuleType<T extends ModuleName> = T extends keyof Injectable ? Injectable[T] : never;
+export type GetModuleType<T extends ModuleName> = T extends keyof import('kusto-framework-core').Injectable ? import('kusto-framework-core').Injectable[T] : never;
 
 // Helper type for getting middleware type by name
-export type GetMiddlewareType<T extends MiddlewareName> = T extends keyof Middleware ? Middleware[T] : never;
+export type GetMiddlewareType<T extends MiddlewareName> = T extends keyof import('kusto-framework-core').Middleware ? import('kusto-framework-core').Middleware[T] : never;
 
 // Helper type for getting middleware parameter type by name
-export type GetMiddlewareParamType<T extends MiddlewareParamName> = T extends keyof MiddlewareParams ? MiddlewareParams[T] : never;
+export type GetMiddlewareParamType<T extends MiddlewareParamName> = T extends keyof import('kusto-framework-core').MiddlewareParams ? import('kusto-framework-core').MiddlewareParams[T] : never;

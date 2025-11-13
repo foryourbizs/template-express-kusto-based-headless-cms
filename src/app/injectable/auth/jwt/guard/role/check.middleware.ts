@@ -23,7 +23,7 @@ export default () => {
         try {
 
             // UserRepository 인스턴스 획득
-            const userRepo = req.kusto.getRepository('defaultUser');
+            const userRepo = req.kusto.repo.defaultUser;
 
             // 필요한 역할이 지정된 경우 확인
             if (requiredRoles.length > 0) {

@@ -1,9 +1,6 @@
-import { log } from '@/src/core/external/winston';
+import { log, kustoManager } from 'kusto-framework-core';
 import { Request, Response, NextFunction } from "express";
-import { MiddlewareHandlerFunction, wrapMiddlewares } from '@lib/middlewareHelpers';
-import { HandlerFunction, ValidatedHandlerFunction } from '@lib/expressRouter';
-import '@lib/types/express-extensions'; // Ensure express extensions are loaded
-import { kustoManager } from '@lib/kustoManager'
+import '../../core/express-extensions'; // Ensure express extensions are loaded
 
 import cors from 'cors';
 import cookieParser from 'cookie-parser'
@@ -232,6 +229,7 @@ const corsOptions: cors.CorsOptions = {
 
 
 const getCSRFMiddleware = async () => {
+    // kustoManager.getModule('')
     const csrfHelper = kustoManager.getModule('authCsrfHelper')!;
     const client = await kustoManager.db.getClient('temporary');
 

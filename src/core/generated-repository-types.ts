@@ -1,16 +1,27 @@
 // Auto-generated file - DO NOT EDIT MANUALLY
-// Generated on: 2025-11-13T05:23:48.866Z
-// Source: src/app/repos/
+// Source: src/app/repos
 
-// Repository type map for getRepository return types (empty - no repositories found)
+import DefaultFileRepository from '../app/repos/default/file.repository';
+import DefaultObjectStorageRepository from '../app/repos/default/objectStorage.repository';
+import DefaultUserRepository from '../app/repos/default/user.repository';
+
+// Repository type definitions
+type DefaultFileRepositoryType = InstanceType<typeof DefaultFileRepository>;
+type DefaultObjectStorageRepositoryType = InstanceType<typeof DefaultObjectStorageRepository>;
+type DefaultUserRepositoryType = InstanceType<typeof DefaultUserRepository>;
+
+// Repository type map for getRepository return types
 export interface RepositoryTypeMap {
-  // No repository files found
-  // Add TypeScript files ending with .repository.ts to src/app/repos/ and regenerate types
+  'defaultFile': DefaultFileRepositoryType;
+  'defaultObjectStorage': DefaultObjectStorageRepositoryType;
+  'defaultUser': DefaultUserRepositoryType;
 }
 
-// Repository registry for dynamic loading (empty)
+// Repository registry for dynamic loading
 export const REPOSITORY_REGISTRY = {
-  // No repositories available
+  'defaultFile': () => import('../app/repos/default/file.repository'),
+  'defaultObjectStorage': () => import('../app/repos/default/objectStorage.repository'),
+  'defaultUser': () => import('../app/repos/default/user.repository'),
 } as const;
 
 // Repository names type

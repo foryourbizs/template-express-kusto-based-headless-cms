@@ -1,23 +1,20 @@
 // Auto-generated file - Do not edit manually
-// Generated from src/app/db folder structure
+// Generated from ./src/app/db folder structure
 
 /**
  * Import actual Prisma client types from each database
  */
-type DefaultClient = typeof import('@app/db/default/client')['PrismaClient'];
-type TemporaryClient = typeof import('@app/db/temporary/client')['PrismaClient'];
+type TemporaryClient = typeof import('../app/db/temporary/client')['PrismaClient'];
 
 /**
  * Instantiated client types
  */
-type DefaultInstance = InstanceType<DefaultClient>;
 type TemporaryInstance = InstanceType<TemporaryClient>;
 
 /**
  * Type mapping for database names to their corresponding Prisma client instances
  */
 export interface DatabaseClientMap {
-  default: DefaultInstance;
   temporary: TemporaryInstance;
   [key: string]: any; // Allow for additional databases
 }
@@ -37,13 +34,12 @@ export type DatabaseName = keyof DatabaseClientMap;
 /**
  * Database names as Union type
  */
-export type DatabaseNamesUnion = 'default' | 'temporary';
+export type DatabaseNamesUnion = 'temporary';
 
 /**
  * Method overloads for getWrap
  */
 export interface PrismaManagerWrapOverloads {
-  getWrap(databaseName: 'default'): DefaultInstance;
   getWrap(databaseName: 'temporary'): TemporaryInstance;
   getWrap<T extends string>(databaseName: T): DatabaseClientType<T>;
 }
@@ -52,7 +48,6 @@ export interface PrismaManagerWrapOverloads {
  * Method overloads for getClient
  */
 export interface PrismaManagerClientOverloads {
-  getClient(databaseName: 'default'): Promise<DefaultInstance>;
   getClient(databaseName: 'temporary'): Promise<TemporaryInstance>;
   getClient<T = any>(databaseName: string): Promise<T>;
 }
@@ -61,11 +56,9 @@ export interface PrismaManagerClientOverloads {
 /**
  * Extend PrismaManager class with proper method overloads
  */
-declare module '../prismaManager' {
+declare module 'kusto-framework-core' {
   interface PrismaManager {
-  getWrap(databaseName: 'default'): DefaultInstance;
   getWrap(databaseName: 'temporary'): TemporaryInstance;
-  getClient(databaseName: 'default'): Promise<DefaultInstance>;
   getClient(databaseName: 'temporary'): Promise<TemporaryInstance>;
   }
 }

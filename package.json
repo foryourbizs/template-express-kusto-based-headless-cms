@@ -1,6 +1,6 @@
 {
   "name": "kusto-server",
-  "version": "0.1.36",
+  "version": "0.1.39",
   "description": "Express based custom server for simple backend service",
   "main": "index.js",
   "bin": {
@@ -47,6 +47,7 @@
     "html-to-image": "^1.11.11",
     "http-proxy-middleware": "^2.0.6",
     "jsonwebtoken": "^9.0.2",
+    "kusto-framework-core": "^1.1.0",
     "module-alias": "^2.2.3",
     "multer": "^1.4.5-lts.1",
     "winston": "^3.12.0",

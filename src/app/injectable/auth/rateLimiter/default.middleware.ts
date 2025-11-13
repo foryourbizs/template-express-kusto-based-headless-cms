@@ -68,7 +68,7 @@ export default () => {
             
             // defaultUser 리포지터리 고정하므로 타입을 지원함
             if (repoName === 'defaultUser') {
-                const repo = req.kusto.getRepository(repoName);
+                const repo = req.kusto.repo[repoName];
 
                 // 1. 현재 rate limit 상태 조회
                 const currentRateLimit = await repo.getRateLimit({

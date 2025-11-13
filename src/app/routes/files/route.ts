@@ -155,8 +155,8 @@ router
         res.setHeader('Connection', 'keep-alive');
         
         // httpFileStreaming 기본 헤더들만 호출 (Content-Length 관련 제외)
-        httpFileStreaming.setBasicHeaders(res, fileName, contentType, etag);
-        httpFileStreaming.setCacheHeaders(res, contentType);
+        httpFileStreaming.setBasicHeaders(res as any, fileName, contentType, etag);
+        httpFileStreaming.setCacheHeaders(res as any, contentType);
 
         // Transfer-Encoding 헤더를 먼저 제거 (충돌 방지)
         res.removeHeader('Transfer-Encoding');

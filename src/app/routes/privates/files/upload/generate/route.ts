@@ -54,7 +54,7 @@ router.GET_VALIDATED({
             if (!r2Storage) {
                 // 기본 저장소가 없는 경우 첫 번째 활성 저장소 사용
                 const activeStorages = await storageRepo.getObjectStoragesListSimply();
-                const availableStorage = activeStorages.find(storage => 
+                const availableStorage = activeStorages.find((storage: any) => 
                     storage.isActive && !storage.deletedAt
                 );
                 

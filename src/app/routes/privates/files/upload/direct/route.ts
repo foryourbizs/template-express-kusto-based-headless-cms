@@ -19,11 +19,18 @@ const storage = diskStorage({
         cb(null, UPLOAD_DIR);   
     },
     filename: function (req, file, cb) {
+        // 한글 파일명을 UTF-8로 디코딩
+        const originalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
+        
         // 파일 확장자 추출
-        const ext = path.extname(file.originalname);
+        const ext = path.extname(originalName);
         // UUID + 타임스탬프 + 추가 난수로 절대 중복되지 않는 파일명 생성
         const additionalRandom = Math.random().toString(36).substring(2, 15);
         const uniqueFilename = `${uuidv4()}-${Date.now()}-${additionalRandom}${ext}`;
+        
+        // originalname도 UTF-8로 설정
+        file.originalname = originalName;
+        
         cb(null, uniqueFilename);
     }
 });

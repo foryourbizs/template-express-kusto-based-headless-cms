@@ -22,6 +22,9 @@ router.GET_VALIDATED({
         
         const { key, contentType, expiresIn = 3600, storageUuid } = req.validatedData.query;
 
+        // URL 디코딩하여 한글 파일명 복원
+        const decodedKey = decodeURIComponent(key as string);
+
         const fileRepo = repo.getRepository('defaultFile');
         const storageRepo = repo.getRepository('defaultObjectStorage');
 
@@ -68,7 +71,7 @@ router.GET_VALIDATED({
 
         // presigned URL 생성 (저장소 설정 정보 포함)
         const presignedUrl = await injected.cloudflareR2.generateUploadPresignedUrl(
-            key as string,
+            decodedKey,
             expiresIn as number,
             contentType as string,
             {
@@ -91,7 +94,7 @@ router.GET_VALIDATED({
         const expiresAt = new Date(Date.now() + (expiresIn as number) * 1000).toISOString();
 
         // 파일명 및 확장자 추출
-        const filename = key.split('/').pop() || key;
+        const filename = decodedKey.split('/').pop() || decodedKey;
         const extension = filename.includes('.') ? filename.split('.').pop() : undefined;
 
         // 미리 파일 등록 (업로드 완료 후 업데이트 예정)
@@ -102,7 +105,7 @@ router.GET_VALIDATED({
             fileSize: 0n, // 업로드 완료 후 실제 크기로 업데이트
             extension: extension,
             storageUuid: r2Storage.uuid,
-            filePath: key,
+            filePath: decodedKey,
             exists: false, // 아직 업로드되지 않음
             isPublic: false,
             uploadedBy: undefined, // TODO: 인증 시스템에서 사용자 ID 가져오기

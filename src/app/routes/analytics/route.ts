@@ -67,7 +67,34 @@ router
 
     // TODO: 통계 데이터 저장 로직 구현해야함
 
-    // db.getWrap('default').anal
+    // 고유 방문자 기록
+    db.getWrap('default').analyticsUniqueVisitor.upsert({
+        where: {
+            fingerprint: fingerprint
+        },
+        create: {
+            userAgent: '',
+            ipAddress: '',
+            fingerprint: fingerprint,
+            firstVisitAt: new Date(),
+        },
+        update: {
+            ipAddress: '',
+            userAgent: '',
+        }
+    });
+
+    
+    const dataToInsert = events.map((e: any) => ({
+        type: e.type,
+        timestamp: new Date(e.timestamp),
+        payload: e.payload,
+        visitorFingerprint: fingerprint,
+    }));
+
+    db.getWrap('default').analyticsEvent.createMany({
+        data: dataToInsert
+    });
 
 
     res.status(200);

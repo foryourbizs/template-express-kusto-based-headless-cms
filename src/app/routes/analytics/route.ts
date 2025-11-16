@@ -68,7 +68,8 @@ router
     // TODO: 통계 데이터 저장 로직 구현해야함
 
     // 고유 방문자 기록
-    db.getWrap('default').analyticsUniqueVisitor.upsert({
+    const dbWrap = db.getWrap('default');
+    await dbWrap.analyticsUniqueVisitor.upsert({
         where: {
             fingerprint: fingerprint
         },
@@ -92,8 +93,9 @@ router
         visitorFingerprint: fingerprint,
     }));
 
-    db.getWrap('default').analyticsEvent.createMany({
-        data: dataToInsert
+    dbWrap.analyticsEvent.createMany({
+        data: dataToInsert,
+        skipDuplicates: true,
     });
 
 

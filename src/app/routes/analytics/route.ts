@@ -7,10 +7,12 @@ const router = new ExpressRouter();
 router
 .POST_VALIDATED({
     body: {
-        type: {type: 'string', required: true},
-        timestamp: {type: 'number', required: true},
-        fingerprint: {type: 'string', required: true},
-        payload: {type: 'object', required: true},
+        events: {type: 'array', required: true, properties: {
+            type: {type: 'string', required: true},
+            timestamp: {type: 'number', required: true},
+            fingerprint: {type: 'string', required: true},
+            payload: {type: 'object', required: true},
+        }},
         hmac: {type: 'string', required: false}
     }
 }, {
@@ -27,8 +29,8 @@ router
         error: { type: 'string', required: true }
     }
 }, async (req, res, injected, repo, db) => {
-    const { type, timestamp, fingerprint, payload, hmac } = req.validatedData.body;
-
+    const { events, hmac } = req.validatedData.body;
+    
     const cryptoHmac = injected.cryptoHmac;
 
     // HMAC이 제공된 경우 검증
@@ -42,15 +44,28 @@ router
             };
         }
 
-        const eventData = {
-            type,
-            timestamp,
+        // events 배열에서 첫 번째 이벤트의 fingerprint 추출 (모두 동일하다고 가정)
+        const fingerprint = events[0]?.fingerprint;
+        
+        if (!fingerprint) {
+            res.status(400);
+            return {
+                error: '이벤트 데이터가 유효하지 않습니다.'
+            };
+        }
+
+        // BatchedEvents 형식으로 변환
+        const batchData = {
             fingerprint,
-            payload,
+            events: events.map((e: any) => ({
+                type: e.type,
+                timestamp: e.timestamp,
+                payload: e.payload
+            })),
             hmac
         };
 
-        const isValid = cryptoHmac.verifyEventHmac(eventData, secretKey);
+        const isValid = cryptoHmac.verifyBatchHmac(batchData, secretKey);
         
         if (!isValid) {
             res.status(401)

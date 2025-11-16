@@ -1287,3 +1287,41 @@ model PostRevision {
   @@index([postUuid, revisionNumber]) // 게시물별 리비전 조회
   @@map("post_revisions")
 }
+
+
+
+
+
+model AnalyticsUniqueVisitor {
+  id          BigInt   @id @default(autoincrement())
+  fingerprint String   @unique @db.VarChar(64)
+
+  ipAddress    String?  @db.VarChar(45)
+  userAgent    String   @db.Text
+  firstVisitAt DateTime @default(now())
+
+  events       AnalyticsEvent[]
+
+  @@index([ipAddress])
+  @@index([firstVisitAt])
+  @@map("analytics_unique_visitors")
+}
+
+model AnalyticsEvent {
+  id          BigInt   @id @default(autoincrement())
+
+  visitorFingerprint String   @db.VarChar(64)
+  type               String   @db.VarChar(50) // pageview | referral | click | scroll | navigation | mouse-moving ...
+  timestamp          DateTime @default(now())
+
+  // 다양한 데이터가 담기는 JSON
+  payload     Json
+
+  // visitor 관계 설정 (fingerprint로 join)
+  visitor     AnalyticsUniqueVisitor @relation(fields: [visitorFingerprint], references: [fingerprint])
+
+  @@index([visitorFingerprint])
+  @@index([type])
+  @@index([timestamp])
+  @@map("analytics_events")
+}

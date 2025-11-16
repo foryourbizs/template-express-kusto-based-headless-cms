@@ -65,7 +65,11 @@ router
         }
     }
 
-    // TODO: 통계 데이터 저장 로직 구현
+    // TODO: 통계 데이터 저장 로직 구현해야함
+
+    // db.getWrap('default').anal
+
+
     res.status(200);
     return {
         success: true

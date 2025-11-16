@@ -19,9 +19,9 @@ router
     200: {
         success: { type: 'boolean', required: true },
     },
-    // 400: {
-    //     error: { type: 'string', required: true }
-    // },
+    400: {
+        error: { type: 'string', required: true }
+    },
     401: {
         error: { type: 'string', required: true }
     },

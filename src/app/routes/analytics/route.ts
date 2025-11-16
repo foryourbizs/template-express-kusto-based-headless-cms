@@ -33,8 +33,8 @@ router
 
     // HMAC이 제공된 경우 검증
     if (hmac) {
-        const secretKey = process.env.HMAC_SECRET;
-        
+        // const secretKey = process.env.HMAC_SECRET;
+        const secretKey = 'kg7j984fd5hg1s2dfgthj98gf7h451g2ds0';
         if (!secretKey) {
             res.status(500);
             return {

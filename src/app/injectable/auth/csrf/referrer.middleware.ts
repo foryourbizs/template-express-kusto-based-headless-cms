@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { log } from '@/src/core/external/winston';
+import { log } from 'kusto-framework-core';
 
 /**
  * CSRF Referrer 미들웨어

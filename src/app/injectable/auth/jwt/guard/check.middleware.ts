@@ -13,7 +13,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     try {
         // 1. Authorization 헤더에서 토큰 추출
         const jwt = req.kusto.injectable.authJwtJsonWebToken;
-        const userRepo = req.kusto.getRepository('defaultUser');
+        const userRepo = req.kusto.repo.defaultUser;
 
         const token = jwt.extractTokenFromHeader(req.headers.authorization);
 
@@ -106,6 +106,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
         }
 
         // 7. 세션 활동 시간 업데이트
+        
         await userRepo.updateSessionActivity(jti, req.ip);
 
         // 사용자 정보를 요청 객체에 추가

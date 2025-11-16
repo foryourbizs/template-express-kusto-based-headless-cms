@@ -1,6 +1,6 @@
 import { CSRFTokenData, StorageConfig } from './storage.interface';
 import { BaseCSRFTokenStorage } from './storage.base';
-import { log } from '@/src/core/external/winston';
+import { log } from 'kusto-framework-core';
 
 /**
  * ORM 클라이언트를 위한 최소 인터페이스

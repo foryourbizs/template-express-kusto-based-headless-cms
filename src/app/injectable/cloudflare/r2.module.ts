@@ -1,7 +1,7 @@
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, DeleteObjectsCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { Readable } from 'stream';
-import { log } from '@ext/winston'
+import { log } from 'kusto-framework-core'
 
 // 저장소 설정 타입 정의
 export interface StorageConfig {

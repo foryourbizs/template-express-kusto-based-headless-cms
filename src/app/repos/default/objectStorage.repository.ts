@@ -1,4 +1,4 @@
-import { BaseRepository } from '@lib/baseRepository';
+import { BaseRepository } from 'kusto-framework-core';
 
 /**
  * User repository for handling user-related database operations
@@ -14,6 +14,7 @@ export default class ObjectStoragesRepository extends BaseRepository<'default'> 
      * @returns List of object storages excluding soft-deleted ones
      */
     public async getObjectStoragesListSimply() {
+        // this.client;
         return this.client.objectStorages.findMany({
             where: {
                 NOT: {

@@ -1,4 +1,4 @@
-import { ExpressRouter } from '@lib/expressRouter';
+import { ExpressRouter } from 'kusto-framework-core';
 
 const router = new ExpressRouter();
 
@@ -62,8 +62,8 @@ router.DELETE_SLUG_VALIDATED(
             });
         }
 
-        const fileRepo = repo.getRepository('defaultFile');
-        const storageRepo = repo.getRepository('defaultObjectStorage');
+        const fileRepo = repo.defaultFile;
+        const storageRepo = repo.defaultObjectStorage;
 
         // 1. 데이터베이스에서 파일 정보 조회
         const fileRecord = await fileRepo.getFileByUuid(fileUuid);

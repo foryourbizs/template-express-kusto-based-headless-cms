@@ -1,4 +1,4 @@
-import { RepositoryName } from '@lib/types/generated-repository-types'
+import { RepositoryName } from '@core/generated-repository-types'
 
 export interface RateLimiterOptionMiddlewareParams {
     /**

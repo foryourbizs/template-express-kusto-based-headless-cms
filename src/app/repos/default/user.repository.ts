@@ -1,4 +1,4 @@
-import { BaseRepository } from '@lib/baseRepository';
+import { BaseRepository } from 'kusto-framework-core';
 import { 
     UserBase, 
     UserAuth, 
@@ -1150,7 +1150,7 @@ export default class UserRepository extends BaseRepository<'default'> {
             }
         });
 
-        return result.map(item => ({
+        return result.map((item: any) => ({
             action: item.action,
             count: item._count.action
         }));
@@ -1220,7 +1220,7 @@ export default class UserRepository extends BaseRepository<'default'> {
             ORDER BY COUNT(*) DESC
         `;
 
-        return result.map(item => ({
+        return result.map((item: any) => ({
             ipAddress: item.ipAddress,
             count: Number(item.count),
             lastAttempt: item.lastAttempt
@@ -2190,8 +2190,8 @@ export default class UserRepository extends BaseRepository<'default'> {
         });
 
         return userRoles
-            .filter(ur => ur.role && ur.role.deletedAt === null && ur.role.isActive)
-            .map(ur => ({
+            .filter((ur: any) => ur.role && ur.role.deletedAt === null && ur.role.isActive)
+            .map((ur: any) => ({
                 name: ur.role!.name,
                 description: ur.role!.description || undefined,
                 isSystem: ur.role!.isSystem,

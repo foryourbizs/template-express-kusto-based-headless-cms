@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { log } from '@/src/core/external/winston';
+import { log } from 'kusto-framework-core';
 import crypto from 'crypto';
 import { CSRFTokenProvider } from './provider';
 import { CSRFTokenStorage, CSRFTokenData, StorageConfig } from './storage.interface';

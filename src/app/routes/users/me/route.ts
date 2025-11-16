@@ -1,4 +1,4 @@
-import { ExpressRouter } from '@lib/expressRouter';
+import { ExpressRouter } from 'kusto-framework-core';
 const router = new ExpressRouter();
 
 
@@ -29,7 +29,8 @@ router
 
     const jwt = injected.authJwtJsonWebToken;
     const constant = injected.constantDb;
-    const userRepo = repo.getRepository('defaultUser');
+    const userRepo = repo.defaultUser;
+    
 
     try {
         const user = jwt.createAuthenticatedUser((req as any).user);

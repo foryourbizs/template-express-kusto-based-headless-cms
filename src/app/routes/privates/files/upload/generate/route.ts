@@ -1,4 +1,4 @@
-import { ExpressRouter } from '@lib/expressRouter';
+import { ExpressRouter } from 'kusto-framework-core';
 const router = new ExpressRouter();
 
 
@@ -19,6 +19,7 @@ router.GET_VALIDATED({
     }
 }, async (req, res, injected, repo, db) => {
     try {
+        
         
         const { key, contentType, expiresIn = 3600, storageUuid } = req.validatedData.query;
 
@@ -55,7 +56,7 @@ router.GET_VALIDATED({
             if (!r2Storage) {
                 // 기본 저장소가 없는 경우 첫 번째 활성 저장소 사용
                 const activeStorages = await storageRepo.getObjectStoragesListSimply();
-                const availableStorage = activeStorages.find(storage => 
+                const availableStorage = activeStorages.find((storage: any) => 
                     storage.isActive && !storage.deletedAt
                 );
                 

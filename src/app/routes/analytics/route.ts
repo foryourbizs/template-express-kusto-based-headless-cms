@@ -65,6 +65,12 @@ router
                     error: 'HMAC 검증에 실패했습니다.'
                 };
             }
+        } else {
+            // HMAC이 제공되지 않은 경우 400 오류 반환
+            res.status(400);
+            return {
+                error: 'HMAC 서명이 제공되지 않았습니다.'
+            };
         }
 
         // TODO: 통계 데이터 저장 로직 구현해야함

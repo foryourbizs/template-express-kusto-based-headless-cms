@@ -10,9 +10,9 @@ router
         events: {type: 'array', required: true, properties: {
             type: {type: 'string', required: true},
             timestamp: {type: 'number', required: true},
-            fingerprint: {type: 'string', required: true},
             payload: {type: 'object', required: true},
         }},
+        fingerprint: {type: 'string', required: true},
         hmac: {type: 'string', required: false}
     }
 }, {
@@ -29,7 +29,7 @@ router
         error: { type: 'string', required: true }
     }
 }, async (req, res, injected, repo, db) => {
-    const { events, hmac } = req.validatedData.body;
+    const { events, fingerprint, hmac } = req.validatedData.body;
     
     const cryptoHmac = injected.cryptoHmac;
 
@@ -41,16 +41,6 @@ router
             res.status(500);
             return {
                 error: 'HMAC_SECRET 환경변수가 설정되지 않았습니다.'
-            };
-        }
-
-        // events 배열에서 첫 번째 이벤트의 fingerprint 추출 (모두 동일하다고 가정)
-        const fingerprint = events[0]?.fingerprint;
-        
-        if (!fingerprint) {
-            res.status(400);
-            return {
-                error: '이벤트 데이터가 유효하지 않습니다.'
             };
         }
 

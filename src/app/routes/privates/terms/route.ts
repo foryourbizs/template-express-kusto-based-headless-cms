@@ -3,7 +3,7 @@ const router = new ExpressRouter();
 
 
 router
-.CRUD('default', 'post', {
+.CRUD('default', 'term', {
     primaryKey: 'uuid',
     softDelete: {
         enabled: true,
